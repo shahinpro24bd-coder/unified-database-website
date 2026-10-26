@@ -1,0 +1,18 @@
+# Tasks
+- [x] Diagnose intermittent loading; bound stalled reads and auth waits, retry temporary read failures once, preserve cached leads, and verify real admin/profile/workspace readback plus recovery after forced connection stalls; zero downtime cannot be guaranteed.
+- [x] Enhance the existing logo and derive sharp favicon and installation icons; verify small-size readability and browser asset loading.
+- [x] Keep Active leads selected by default and provide explicit tick/cross lead controls; verify status readback.
+- [x] Verify independent password logins and device-local logout; handle slow role lookup and mobile keyboard corrections.
+- [ ] Reproduce installed-app invalid-password error — blocked: need the affected app's website link; two independent browser logins succeeded.
+- [x] Put lead collection first and other feature boxes below; polish user, login and admin screens without changing their behavior.
+- [x] Use supplied logo and favicon, replace app-authored branding, improve and verify login presentation.
+- [x] Replace All Leads with Previous Version Leads; verify all 1,355 rows and cross-account canonical duplicate rejection in the UI.
+- [x] Add secure admin dashboard with submission times, counts and account removal; provision designated admin and verify login, activity readback, denied non-admin access and temporary-account removal.
+- [ ] Hide the platform-injected published-site badge — blocked: user declined the required approval; do not retry without a new request.
+- [x] Preserve uploaded leads with original ownership and verify import (1,355 rows, 12 owners, zero original-field mismatches).
+- [x] Rename the site TEAM SHAHIN and give the workspace and sign-in a professional presentation.
+- [x] Verify public screens, desktop/mobile layout, and signed-out protection.
+- [ ] Restore original account access — blocked: uploaded CSV contains leads only, no original account emails or account export; original ownership is preserved and designated admin login is verified.- [x] Import uploaded CSV (1,355 leads) into Previous Version Leads; each account sees only its own; same link blocked across all accounts.
+- [x] Logo served as a plain file so it loads on any host (e.g. Vercel).
+- [x] Admin account shahinpro24@gmail.com created with admin role.
+- [x] Sign-up removed from login; admin login opens Admin; admin creates accounts, opens any account's leads and manages them; Collect leads button on Admin.

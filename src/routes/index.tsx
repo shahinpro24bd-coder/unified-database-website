@@ -1,24 +1,45 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { recoverSession } from "@/lib/session-recovery";
+import { TeamBrand } from "@/components/team-brand";
+import { LoaderCircle } from "lucide-react";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "TEAM SHAHIN — Lead Workspace" },
+      {
+        name: "description",
+        content:
+          "TEAM SHAHIN: your private workspace for lead collection, verification and archiving.",
+      },
+      { property: "og:title", content: "TEAM SHAHIN — Lead Workspace" },
+      {
+        property: "og:description",
+        content: "Manage your team's lead collection in TEAM SHAHIN.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    let active = true;
+    recoverSession().then(({ data }) => {
+      if (active) navigate({ to: data.session ? "/leads" : "/auth", replace: true });
+    }).catch(() => { if (active) navigate({ to: "/auth", replace: true }); });
+    return () => { active = false; };
+  }, [navigate]);
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
+    <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6">
+      <TeamBrand />
+      <LoaderCircle className="size-5 animate-spin text-muted-foreground motion-reduce:animate-none" aria-label="Loading workspace" />
+    </main>
   );
 }

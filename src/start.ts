@@ -1,6 +1,7 @@
 import { createStart, createCsrfMiddleware, createMiddleware } from "@tanstack/react-start";
 
 import { renderErrorPage } from "./lib/error-page";
+import { attachSessionWithDeadline } from "@/lib/auth-transport";
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
   try {
@@ -25,5 +26,7 @@ const csrfMiddleware = createCsrfMiddleware({
 });
 
 export const startInstance = createStart(() => ({
+  // Intentionally replaces the generated unbounded getSession attacher.
+  functionMiddleware: [attachSessionWithDeadline],
   requestMiddleware: [errorMiddleware, csrfMiddleware],
 }));
