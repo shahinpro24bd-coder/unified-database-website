@@ -1,0 +1,8 @@
+[
+{"capability":"code","source":"zip","outcome":"migrate","status":"done","next_action":null},
+{"capability":"schema","source":"drizzle migration","outcome":"migrate","status":"done","next_action":null},
+{"capability":"records:leads","source":"leads csv","outcome":"migrate","status":"done (1367 rows)","next_action":null},
+{"capability":"auth identities (13 accounts)","source":"old backend","outcome":"migrate","status":"pending","next_action":"user export with id + email; recreate accounts with original ids"},
+{"capability":"admin roles","source":"user_roles","outcome":"migrate","status":"pending","next_action":"need admin email"},
+{"capability":"previous-version archive (lead_import_records)","source":"old backend","outcome":"migrate","status":"pending","next_action":"export if used"}
+]
