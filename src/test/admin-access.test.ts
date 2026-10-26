@@ -48,7 +48,7 @@ describe('Admin account permissions', () => {
     });
     const rows = await allLeads();
     expect(rows).toHaveLength(1001);
-    expect(rows[1000].id).toBe('last');
+    expect(rows[1000]!.id).toBe('last');
     expect(from).toHaveBeenCalledTimes(2);
   });
 });
