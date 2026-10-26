@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { useServerFn } from '@tanstack/react-start';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -19,8 +18,8 @@ export const Route = createFileRoute('/_authenticated/admin')({
 });
 
 function AdminPage() {
-  const load = useServerFn(adminDashboard);
-  const remove = useServerFn(removeAccount);
+  const load = adminDashboard;
+  const remove = removeAccount;
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [account, setAccount] = useState('');
@@ -45,7 +44,7 @@ function AdminPage() {
   </main>;
 }
 function CreateAccount({ onDone }: { onDone: () => void }) {
-  const create = useServerFn(createAccount);
+  const create = createAccount;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const m = useMutation({ mutationFn: () => create({ data: { email, password } }), onSuccess: () => { toast.success('Account created'); setEmail(''); setPassword(''); onDone(); }, onError: (e: Error) => toast.error(e.message) });
@@ -56,8 +55,8 @@ function CreateAccount({ onDone }: { onDone: () => void }) {
 }
 
 function AccountProfile({ userId, email, onClose }: { userId: string; email: string; onClose: () => void }) {
-  const load = useServerFn(accountLeads);
-  const update = useServerFn(updateAccountLead);
+  const load = accountLeads;
+  const update = updateAccountLead;
   const qc = useQueryClient();
   const q = useQuery({ ...recoveryQueryOptions, queryKey: ['account-leads', userId], queryFn: ({ signal }) => boundedRequest(s => load({ data: { userId }, signal: s }), undefined, signal) });
   const m = useMutation({ mutationFn: (v: { id: string; action: 'verify' | 'unverify' | 'archive' | 'unarchive' | 'trash' | 'restore' | 'delete' | 'phone'; phone?: string }) => update({ data: v }), onSuccess: () => qc.invalidateQueries({ queryKey: ['account-leads', userId] }), onError: (e: Error) => toast.error(e.message) });

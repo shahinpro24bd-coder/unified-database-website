@@ -1,91 +1,83 @@
-import { createServerFn } from '@tanstack/react-start';
-import { requireSupabaseAuth } from '@/integrations/supabase/auth-middleware';
+// Admin data access runs from the browser against database functions and
+// admin-only row policies, so it needs no server secrets and works on any host.
+import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
 
-export const adminDashboard = createServerFn({ method: 'POST' })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data: allowed, error } = await context.supabase.rpc('has_role', { _user_id: context.userId, _role: 'admin' });
-    if (error || !allowed) throw new Error('Admin access required');
-    const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
-    const accounts = [];
-    for (let page = 1; ; page++) {
-      const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 });
-      if (error) throw error;
-      accounts.push(...data.users.map(u => ({ id: u.id, email: u.email ?? 'No email', createdAt: u.created_at })));
-      if (data.users.length < 1000) break;
-    }
-    const activity = [];
-    for (let start = 0; ; start += 1000) {
-      const { data, error } = await context.supabase.from('lead_activity').select('id,user_id,added_at').order('added_at', { ascending: false }).order('id').range(start, start + 999);
-      if (error) throw error;
-      activity.push(...(data ?? []));
-      if (!data || data.length < 1000) break;
-    }
-    return { accounts, activity, selfId: context.userId };
-  });
+type Opts<T = undefined> = T extends undefined ? { signal?: AbortSignal } | void : { data: T; signal?: AbortSignal };
 
-export const removeAccount = createServerFn({ method: 'POST' })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ userId: z.string().uuid() }).parse(input))
-  .handler(async ({ data, context }) => {
-    const { data: allowed, error } = await context.supabase.rpc('has_role', { _user_id: context.userId, _role: 'admin' });
-    if (error || !allowed) throw new Error('Admin access required');
-    if (data.userId === context.userId) throw new Error('You cannot remove your own admin account');
-    const { data: targetAdmin, error: roleError } = await context.supabase.rpc('has_role', { _user_id: data.userId, _role: 'admin' });
-    if (roleError || targetAdmin) throw new Error('Admin accounts cannot be removed here');
-    const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
-    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
-    if (deleteError) throw deleteError;
-    return { ok: true };
-  });
-async function assertAdmin(context: { supabase: any; userId: string }) {
-  const { data: allowed, error } = await context.supabase.rpc('has_role', { _user_id: context.userId, _role: 'admin' });
-  if (error || !allowed) throw new Error('Admin access required');
-  const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
-  return supabaseAdmin;
+async function requireAdmin() {
+  const { data: { session } } = await supabase.auth.getSession();
+  const uid = session?.user.id;
+  if (!uid) throw new Error('Please sign in again');
+  const { data, error } = await supabase.rpc('has_role', { _user_id: uid, _role: 'admin' });
+  if (error || !data) throw new Error('Admin access required');
+  return uid;
 }
 
-export const createAccount = createServerFn({ method: 'POST' })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ email: z.string().email(), password: z.string().min(6) }).parse(input))
-  .handler(async ({ data, context }) => {
-    const admin = await assertAdmin(context);
-    const { error } = await admin.auth.admin.createUser({ email: data.email, password: data.password, email_confirm: true });
+export async function adminDashboard(opts?: Opts) {
+  const signal = opts ? opts.signal : undefined;
+  const selfId = await requireAdmin();
+  let req = supabase.rpc('admin_list_accounts');
+  if (signal) req = req.abortSignal(signal);
+  const { data: users, error } = await req;
+  if (error) throw new Error(error.message);
+  const accounts = (users ?? []).map(u => ({ id: u.id, email: u.email, createdAt: u.created_at }));
+  const activity: { id: string; user_id: string; added_at: string }[] = [];
+  for (let start = 0; ; start += 1000) {
+    let q = supabase.from('lead_activity').select('id,user_id,added_at').order('added_at', { ascending: false }).order('id').range(start, start + 999);
+    if (signal) q = q.abortSignal(signal);
+    const { data, error } = await q;
     if (error) throw new Error(error.message);
-    return { ok: true };
-  });
+    activity.push(...(data ?? []));
+    if (!data || data.length < 1000) break;
+  }
+  return { accounts, activity, selfId };
+}
 
-export const accountLeads = createServerFn({ method: 'POST' })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ userId: z.string().uuid() }).parse(input))
-  .handler(async ({ data, context }) => {
-    const admin = await assertAdmin(context);
-    const rows = [];
-    for (let start = 0; ; start += 1000) {
-      const { data: page, error } = await admin.from('leads').select('id,serial,phone,facebook_link,verified,archived,deleted_at,created_at').eq('user_id', data.userId).order('serial', { ascending: false }).range(start, start + 999);
-      if (error) throw new Error(error.message);
-      rows.push(...(page ?? []));
-      if (!page || page.length < 1000) break;
-    }
-    return rows;
-  });
+export async function removeAccount({ data }: { data: { userId: string } }) {
+  const { userId } = z.object({ userId: z.string().uuid() }).parse(data);
+  await requireAdmin();
+  const { error } = await supabase.rpc('admin_remove_account', { _user_id: userId });
+  if (error) throw new Error(error.message);
+  return { ok: true };
+}
 
-export const updateAccountLead = createServerFn({ method: 'POST' })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({
+export async function createAccount({ data }: { data: { email: string; password: string } }) {
+  const v = z.object({ email: z.string().email(), password: z.string().min(6) }).parse(data);
+  await requireAdmin();
+  const { error } = await supabase.rpc('admin_create_account', { _email: v.email, _password: v.password });
+  if (error) throw new Error(error.message);
+  return { ok: true };
+}
+
+export async function accountLeads({ data, signal }: { data: { userId: string }; signal?: AbortSignal }) {
+  const { userId } = z.object({ userId: z.string().uuid() }).parse(data);
+  await requireAdmin();
+  const rows = [];
+  for (let start = 0; ; start += 1000) {
+    let q = supabase.from('leads').select('id,serial,phone,facebook_link,verified,archived,deleted_at,created_at').eq('user_id', userId).order('serial', { ascending: false }).range(start, start + 999);
+    if (signal) q = q.abortSignal(signal);
+    const { data: page, error } = await q;
+    if (error) throw new Error(error.message);
+    rows.push(...(page ?? []));
+    if (!page || page.length < 1000) break;
+  }
+  return rows;
+}
+
+export async function updateAccountLead({ data }: { data: { id: string; action: 'verify' | 'unverify' | 'archive' | 'unarchive' | 'trash' | 'restore' | 'delete' | 'phone'; phone?: string } }) {
+  const v = z.object({
     id: z.string().uuid(),
     action: z.enum(['verify', 'unverify', 'archive', 'unarchive', 'trash', 'restore', 'delete', 'phone']),
     phone: z.string().max(50).optional(),
-  }).parse(input))
-  .handler(async ({ data, context }) => {
-    const admin = await assertAdmin(context);
-    const q = admin.from('leads');
-    const patch: Record<string, unknown> = {
-      verify: { verified: true }, unverify: { verified: false }, archive: { archived: true }, unarchive: { archived: false },
-      trash: { deleted_at: new Date().toISOString() }, restore: { deleted_at: null }, phone: { phone: data.phone || null }, delete: {},
-    }[data.action];
-    const { error } = data.action === 'delete' ? await q.delete().eq('id', data.id) : await q.update(patch as never).eq('id', data.id);
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
+  }).parse(data);
+  await requireAdmin();
+  const patch = {
+    verify: { verified: true }, unverify: { verified: false }, archive: { archived: true }, unarchive: { archived: false },
+    trash: { deleted_at: new Date().toISOString() }, restore: { deleted_at: null }, phone: { phone: v.phone || null }, delete: {},
+  }[v.action];
+  const q = supabase.from('leads');
+  const { error } = v.action === 'delete' ? await q.delete().eq('id', v.id) : await q.update(patch).eq('id', v.id);
+  if (error) throw new Error(error.message);
+  return { ok: true };
+}
