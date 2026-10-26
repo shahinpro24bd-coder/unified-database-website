@@ -1,13 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const rpc = vi.fn();
+const from = vi.fn();
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     auth: { getSession: vi.fn().mockResolvedValue({ data: { session: { user: { id: 'me' } } } }) },
     rpc: (...a: unknown[]) => rpc(...a),
+    from: (...a: unknown[]) => from(...a),
   },
 }));
-import { adminDashboard, removeAccount } from '@/lib/admin.functions';
+import { adminDashboard, removeAccount, allLeads } from '@/lib/admin.functions';
 
 const OTHER = '11111111-1111-4111-8111-111111111111';
 describe('Admin account permissions', () => {
