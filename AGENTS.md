@@ -17,3 +17,4 @@
 - Use the shared lead-status control for explicit verification assignments; opening the workspace always defaults to active leads.
 - Use project-owned bounded auth transport and abortable read deadlines with one transient retry; retain cached rows on background read failures and never automatically retry writes, to prevent indefinite loading without duplicating actions.
 - vite.config.ts switches nitro to the "vercel" preset only when VERCEL is set, so the same repo deploys on Vercel while Lovable builds stay on Lovable hosting.
+- Admin data access runs from the browser through admin-checked database functions and admin row policies (no server secrets), so the admin page works on hosts without the service key such as Vercel.
