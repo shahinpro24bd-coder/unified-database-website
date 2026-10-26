@@ -28,4 +28,27 @@ describe('Admin account permissions', () => {
     await expect(removeAccount({ data: { userId: OTHER } })).resolves.toEqual({ ok: true });
     expect(rpc).toHaveBeenCalledWith('admin_remove_account', { _user_id: OTHER });
   });
+  it('denies the all-leads view to a non-admin account', async () => {
+    rpc.mockResolvedValue({ data: false, error: null });
+    await expect(allLeads()).rejects.toThrow('Admin access required');
+    expect(from).not.toHaveBeenCalled();
+  });
+  it('loads every lead across all accounts for an admin', async () => {
+    rpc.mockResolvedValue({ data: true, error: null });
+    const page1 = Array.from({ length: 1000 }, (_, i) => ({ id: `l${i}`, user_id: OTHER, serial: i, phone: null, facebook_link: 'https://facebook.com/x', verified: false, archived: false, deleted_at: null, created_at: new Date().toISOString() }));
+    const page2 = [{ ...page1[0], id: 'last', serial: 1000 }];
+    let call = 0;
+    from.mockImplementation(() => {
+      const builder = {
+        select: () => builder,
+        order: () => builder,
+        range: () => Promise.resolve({ data: call++ === 0 ? page1 : page2, error: null }),
+      };
+      return builder;
+    });
+    const rows = await allLeads();
+    expect(rows).toHaveLength(1001);
+    expect(rows[1000].id).toBe('last');
+    expect(from).toHaveBeenCalledTimes(2);
+  });
 });
