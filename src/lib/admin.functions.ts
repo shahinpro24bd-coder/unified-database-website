@@ -50,12 +50,12 @@ export async function createAccount({ data }: { data: { email: string; password:
   return { ok: true };
 }
 
-export async function accountLeads({ data, signal }: { data: { userId: string }; signal?: AbortSignal }) {
-  const { userId } = z.object({ userId: z.string().uuid() }).parse(data);
+export async function allLeads(opts?: Opts) {
+  const signal = opts ? opts.signal : undefined;
   await requireAdmin();
-  const rows = [];
+  const rows: { id: string; user_id: string; serial: number; phone: string | null; facebook_link: string; verified: boolean; archived: boolean; deleted_at: string | null; created_at: string }[] = [];
   for (let start = 0; ; start += 1000) {
-    let q = supabase.from('leads').select('id,serial,phone,facebook_link,verified,archived,deleted_at,created_at').eq('user_id', userId).order('serial', { ascending: false }).range(start, start + 999);
+    let q = supabase.from('leads').select('id,user_id,serial,phone,facebook_link,verified,archived,deleted_at,created_at').order('created_at', { ascending: false }).range(start, start + 999);
     if (signal) q = q.abortSignal(signal);
     const { data: page, error } = await q;
     if (error) throw new Error(error.message);
