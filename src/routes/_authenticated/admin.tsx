@@ -1,13 +1,14 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Trash2, Users, Clock, ListChecks, Plus, UserPlus, Check, Archive, ArchiveRestore, RotateCcw, X, ExternalLink } from 'lucide-react';
+import { Trash2, Users, Clock, ListChecks, Plus, UserPlus, Check, Archive, ArchiveRestore, RotateCcw, X, ExternalLink, Eye } from 'lucide-react';
 import { TeamBrand } from '@/components/team-brand';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { adminDashboard, removeAccount, createAccount, accountLeads, updateAccountLead } from '@/lib/admin.functions';
+import { adminDashboard, removeAccount, createAccount, accountLeads, updateAccountLead, allLeads } from '@/lib/admin.functions';
 import { boundedRequest, recoveryQueryOptions } from '@/lib/request-recovery';
+import { supabase } from '@/integrations/supabase/client';
 
 export const Route = createFileRoute('/_authenticated/admin')({
   head: () => ({ meta: [
