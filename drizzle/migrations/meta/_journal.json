@@ -15,6 +15,13 @@
       "when": 1792995031990,
       "tag": "0001_noop",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792996088996,
+      "tag": "0002_admin_rpcs",
+      "breakpoints": true
     }
   ]
 }

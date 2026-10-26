@@ -118,6 +118,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_create_account: {
+        Args: { _email: string; _password: string }
+        Returns: string
+      }
+      admin_list_accounts: {
+        Args: never
+        Returns: {
+          created_at: string
+          email: string
+          id: string
+        }[]
+      }
+      admin_remove_account: { Args: { _user_id: string }; Returns: undefined }
       canonical_facebook_link: { Args: { input_link: string }; Returns: string }
       collected_leads: {
         Args: never
