@@ -406,6 +406,30 @@ function LeadsPage() {
     navigate({ to: "/auth", replace: true });
   };
 
+  // "View as" is admin-only: another account's leads are never opened for anyone else.
+  if (actingAsOther && (!isAdmin || rolePending)) {
+    return (
+      <main className="workspace-page min-h-screen">
+        <header className="workspace-header px-5 py-4">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+            <TeamBrand />
+            <Button variant="outline" size="sm" asChild><Link to="/admin"><ArrowLeft className="mr-2 size-4" /> Admin</Link></Button>
+          </div>
+        </header>
+        <div className="mx-auto max-w-7xl px-5 py-16 text-center">
+          {rolePending ? (
+            <p className="text-sm text-muted-foreground">Access check cholche…</p>
+          ) : (
+            <>
+              <p className="text-sm text-muted-foreground">Ei account er workspace shudhu admin khulte parben.</p>
+              <Button className="mt-4" variant="outline" asChild><Link to="/leads">Nijer workspace e firun</Link></Button>
+            </>
+          )}
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="workspace-page min-h-screen">
       <header className="workspace-header px-5 py-4">
@@ -420,10 +444,21 @@ function LeadsPage() {
         </div>
       </header>
 
+      {actingAsOther && (
+        <div className="mx-auto max-w-7xl px-5 pt-6 sm:px-8">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/10 px-4 py-3">
+            <p className="flex items-center gap-2 text-sm font-medium"><Eye className="size-4 shrink-0" /> Admin view: {targetEmail ?? actingAs} er workspace dekhano hocche.</p>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" onClick={() => navigate({ to: "/leads", search: {} })}><RotateCcw className="mr-2 size-4" /> Nijer workspace</Button>
+              <Button size="sm" asChild><Link to="/admin"><ArrowLeft className="mr-2 size-4" /> Admin e firun</Link></Button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="mx-auto max-w-7xl space-y-8 px-5 py-8 sm:px-8 sm:py-10">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground"><LayoutDashboard className="size-3.5" /> YOUR WORKSPACE</p>
+            <p className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground"><LayoutDashboard className="size-3.5" /> {actingAsOther ? `VIEWING AS ${targetEmail ?? "this account"}` : "YOUR WORKSPACE"}</p>
             <h1 className="text-3xl font-semibold sm:text-4xl">Lead collection<span className="text-primary">.</span></h1>
           </div>
           <Button variant="outline" size="sm" onClick={() => { refetchLeads(); qc.invalidateQueries({ queryKey: ["previous-version-leads"] }); }}>
@@ -845,7 +880,7 @@ function LeadsPage() {
               { key: "archived", name: "Archive", icon: Archive, count: leads.filter(l => l.archived && !l.deleted_at).length },
               { key: "trash", name: "Trash", icon: Trash2, count: leads.filter(l => l.deleted_at).length },
               { key: "collected", name: "Previous Version Leads", icon: Globe, count: null },
-            ] as const).map(item => <Button key={item.key} variant="outline" aria-pressed={view === item.key} className={`feature-tile ${view === item.key ? 'border-primary bg-primary/10' : ''}`} onClick={() => { setView(item.key); document.getElementById("lead-register")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" }); }}>
+            ] as const).filter(item => !actingAsOther || item.key !== "collected").map(item => <Button key={item.key} variant="outline" aria-pressed={view === item.key} className={`feature-tile ${view === item.key ? 'border-primary bg-primary/10' : ''}`} onClick={() => { setView(item.key); document.getElementById("lead-register")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" }); }}>
               <span className="feature-icon"><item.icon className="size-5" /></span>
               <ArrowUpRight className="feature-arrow size-4" />
               <span className="feature-name">{item.name}</span>
