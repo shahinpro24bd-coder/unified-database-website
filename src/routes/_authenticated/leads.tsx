@@ -1,10 +1,13 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
+import { z } from "zod";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import {
   ExternalLink,
+  ArrowLeft,
+  Eye,
   Trash2,
   LogOut,
   Plus,
@@ -27,6 +30,7 @@ import { TeamBrand } from "@/components/team-brand";
 import { DEFAULT_LEAD_VIEW, LeadStatus } from "@/components/lead-status";
 import { signOutThisDevice } from "@/lib/account-session";
 import { boundedRequest, recoveryQueryOptions } from "@/lib/request-recovery";
+import { accountEmail } from "@/lib/admin.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,6 +66,11 @@ type Collected = {
 
 
 export const Route = createFileRoute("/_authenticated/leads")({
+  // ?as=<account id> opens another account's workspace — admin only, checked below.
+  validateSearch: (search: Record<string, unknown>): { as?: string } => {
+    const parsed = z.object({ as: z.string().uuid().optional() }).safeParse(search);
+    return { as: parsed.success ? parsed.data.as : undefined };
+  },
   head: () => ({
     meta: [
       { title: "Lead Workspace — TEAM SHAHIN" },
@@ -81,6 +90,9 @@ export const Route = createFileRoute("/_authenticated/leads")({
 function LeadsPage() {
   const { user } = Route.useRouteContext();
   const navigate = useNavigate();
+  const { as: actingAs } = Route.useSearch();
+  const actingAsOther = Boolean(actingAs && actingAs !== user.id);
+  const targetId = actingAsOther && actingAs ? actingAs : user.id;
   const qc = useQueryClient();
   const [link, setLink] = useState("");
   const [phone, setPhone] = useState("");
@@ -99,12 +111,12 @@ function LeadsPage() {
     refetch: refetchLeads,
   } = useQuery({
     ...recoveryQueryOptions,
-    queryKey: ["leads"],
+    queryKey: ["leads", targetId],
     queryFn: async ({ signal }): Promise<Lead[]> => {
-      const uid = user.id;
+      const uid = targetId;
 
       // 30 din er purono trash auto delete — background-e, fail korleo page atkabe na.
-      void boundedRequest(s => supabase.rpc("purge_old_trash").abortSignal(s)).catch(() => undefined);
+      if (!actingAsOther) void boundedRequest(s => supabase.rpc("purge_old_trash").abortSignal(s)).catch(() => undefined);
 
       // 1000 row er limit er jonno page by page sob lead ana hoy.
       const PAGE = 1000;
@@ -124,7 +136,7 @@ function LeadsPage() {
     },
   });
 
-  const { data: isAdmin = false } = useQuery({
+  const { data: isAdmin = false, isPending: rolePending } = useQuery({
     ...recoveryQueryOptions,
     queryKey: ["admin-role"],
     queryFn: async ({ signal }) => {
@@ -133,10 +145,16 @@ function LeadsPage() {
       return result.data;
     },
   });
+  const { data: targetEmail } = useQuery({
+    ...recoveryQueryOptions,
+    queryKey: ["account-email", targetId],
+    enabled: actingAsOther,
+    queryFn: async ({ signal }) => boundedRequest(s => accountEmail({ data: { userId: targetId }, signal: s }), undefined, signal),
+  });
   const { data: collected = [], isLoading: collectedLoading, isError: previousError, refetch: refetchPrevious } = useQuery({
     ...recoveryQueryOptions,
     queryKey: ["previous-version-leads"],
-    enabled: view === "collected",
+    enabled: view === "collected" && !actingAsOther,
     queryFn: async ({ signal }): Promise<Collected[]> => {
       const all: Collected[] = [];
       for (let start = 0; ; start += 1000) {
@@ -177,7 +195,7 @@ function LeadsPage() {
       }
 
       const { error } = await supabase.from("leads").insert({
-        user_id: uid,
+        user_id: targetId,
         facebook_link: trimmedLink.slice(0, 500),
         // The database trigger replaces this with the authoritative canonical value.
         canonical_link: trimmedLink.slice(0, 500),
@@ -228,7 +246,7 @@ function LeadsPage() {
         }
         seen.add(key);
 
-        rows.push({ user_id: uid, facebook_link: url, canonical_link: url, serial: 0 });
+        rows.push({ user_id: targetId, facebook_link: url, canonical_link: url, serial: 0 });
       }
 
       if (rows.length === 0)
@@ -372,6 +390,11 @@ function LeadsPage() {
     setSelected([]);
   }, [view]);
 
+  // "Previous version" rows belong to the signed-in admin, never to the viewed account.
+  useEffect(() => {
+    if (actingAsOther && view === "collected") setView("active");
+  }, [actingAsOther, view]);
+
   const visibleIds = filtered.map((l) => l.id);
   const selectedVisible = selected.filter((id) => visibleIds.includes(id));
   const allSelected = visibleIds.length > 0 && selectedVisible.length === visibleIds.length;
@@ -382,6 +405,30 @@ function LeadsPage() {
     await signOutThisDevice();
     navigate({ to: "/auth", replace: true });
   };
+
+  // "View as" is admin-only: another account's leads are never opened for anyone else.
+  if (actingAsOther && (!isAdmin || rolePending)) {
+    return (
+      <main className="workspace-page min-h-screen">
+        <header className="workspace-header px-5 py-4">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+            <TeamBrand />
+            <Button variant="outline" size="sm" asChild><Link to="/admin"><ArrowLeft className="mr-2 size-4" /> Admin</Link></Button>
+          </div>
+        </header>
+        <div className="mx-auto max-w-7xl px-5 py-16 text-center">
+          {rolePending ? (
+            <p className="text-sm text-muted-foreground">Access check cholche…</p>
+          ) : (
+            <>
+              <p className="text-sm text-muted-foreground">Ei account er workspace shudhu admin khulte parben.</p>
+              <Button className="mt-4" variant="outline" asChild><Link to="/leads">Nijer workspace e firun</Link></Button>
+            </>
+          )}
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="workspace-page min-h-screen">
@@ -397,10 +444,21 @@ function LeadsPage() {
         </div>
       </header>
 
+      {actingAsOther && (
+        <div className="mx-auto max-w-7xl px-5 pt-6 sm:px-8">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/10 px-4 py-3">
+            <p className="flex items-center gap-2 text-sm font-medium"><Eye className="size-4 shrink-0" /> Admin view: {targetEmail ?? actingAs} er workspace dekhano hocche.</p>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" onClick={() => navigate({ to: "/leads", search: {} })}><RotateCcw className="mr-2 size-4" /> Nijer workspace</Button>
+              <Button size="sm" asChild><Link to="/admin"><ArrowLeft className="mr-2 size-4" /> Admin e firun</Link></Button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="mx-auto max-w-7xl space-y-8 px-5 py-8 sm:px-8 sm:py-10">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground"><LayoutDashboard className="size-3.5" /> YOUR WORKSPACE</p>
+            <p className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground"><LayoutDashboard className="size-3.5" /> {actingAsOther ? `VIEWING AS ${targetEmail ?? "this account"}` : "YOUR WORKSPACE"}</p>
             <h1 className="text-3xl font-semibold sm:text-4xl">Lead collection<span className="text-primary">.</span></h1>
           </div>
           <Button variant="outline" size="sm" onClick={() => { refetchLeads(); qc.invalidateQueries({ queryKey: ["previous-version-leads"] }); }}>
@@ -822,7 +880,7 @@ function LeadsPage() {
               { key: "archived", name: "Archive", icon: Archive, count: leads.filter(l => l.archived && !l.deleted_at).length },
               { key: "trash", name: "Trash", icon: Trash2, count: leads.filter(l => l.deleted_at).length },
               { key: "collected", name: "Previous Version Leads", icon: Globe, count: null },
-            ] as const).map(item => <Button key={item.key} variant="outline" aria-pressed={view === item.key} className={`feature-tile ${view === item.key ? 'border-primary bg-primary/10' : ''}`} onClick={() => { setView(item.key); document.getElementById("lead-register")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" }); }}>
+            ] as const).filter(item => !actingAsOther || item.key !== "collected").map(item => <Button key={item.key} variant="outline" aria-pressed={view === item.key} className={`feature-tile ${view === item.key ? 'border-primary bg-primary/10' : ''}`} onClick={() => { setView(item.key); document.getElementById("lead-register")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" }); }}>
               <span className="feature-icon"><item.icon className="size-5" /></span>
               <ArrowUpRight className="feature-arrow size-4" />
               <span className="feature-name">{item.name}</span>

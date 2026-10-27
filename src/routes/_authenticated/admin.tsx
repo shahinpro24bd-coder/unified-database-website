@@ -1,12 +1,12 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Trash2, Users, Clock, ListChecks, Plus, UserPlus, Check, Archive, ArchiveRestore, RotateCcw, X, ExternalLink, Eye } from 'lucide-react';
+import { Trash2, Users, Clock, ListChecks, Plus, UserPlus, Check, Archive, ArchiveRestore, RotateCcw, ExternalLink, Eye, Filter } from 'lucide-react';
 import { TeamBrand } from '@/components/team-brand';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { adminDashboard, removeAccount, createAccount, accountLeads, updateAccountLead, allLeads, addAccountLead } from '@/lib/admin.functions';
+import { adminDashboard, removeAccount, createAccount, updateAccountLead, allLeads } from '@/lib/admin.functions';
 import { boundedRequest, recoveryQueryOptions } from '@/lib/request-recovery';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -21,6 +21,7 @@ export const Route = createFileRoute('/_authenticated/admin')({
 function AdminPage() {
   const load = adminDashboard;
   const remove = removeAccount;
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [account, setAccount] = useState('');
@@ -28,6 +29,8 @@ function AdminPage() {
   const query = useQuery({ ...recoveryQueryOptions, queryKey: ['admin-dashboard'], queryFn: ({ signal }) => boundedRequest(s => load({ signal: s }), undefined, signal) });
   const deletion = useMutation({ mutationFn: (userId: string) => remove({ data: { userId } }), onSuccess: () => { toast.success('Account removed. Leads preserved.'); qc.invalidateQueries({ queryKey: ['admin-dashboard'] }); }, onError: (e: Error) => toast.error(e.message) });
   const data = query.data;
+  // Clicking an account opens the very same workspace that account sees.
+  const openWorkspace = (userId: string) => navigate({ to: '/leads', search: { as: userId } });
   return <main className="admin-page min-h-screen">
     <header className="workspace-header px-5 py-5"><div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4"><TeamBrand /><Button asChild><Link to="/leads"><Plus /> Collect leads</Link></Button></div></header>
     <div className="mx-auto max-w-7xl px-5 py-8">
@@ -38,9 +41,8 @@ function AdminPage() {
         <div className="my-6 flex flex-wrap items-center gap-3"><Button variant={showAll ? 'secondary' : 'outline'} onClick={() => { setShowAll(v => !v); if (!showAll) window.scrollTo({ top: 0, behavior: 'smooth' }); }}><Eye /> {showAll ? 'Hide all leads' : 'Show all leads'}</Button>{showAll && <Button variant="ghost" onClick={() => qc.invalidateQueries({ queryKey: ['admin-all-leads'] })}><RotateCcw /> Refresh</Button>}</div>
         {showAll && <AllLeads accounts={data.accounts} />}
         <CreateAccount onDone={() => qc.invalidateQueries({ queryKey: ['admin-dashboard'] })} />
-        {account && <AccountProfile userId={account} email={data.accounts.find(u => u.id === account)?.email ?? ''} onClose={() => setAccount('')} />}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-4"><h2 className="text-xl font-semibold">Accounts</h2><Input aria-label="Search accounts" className="max-w-sm" placeholder="Search email…" value={search} onChange={e => setSearch(e.target.value)} /></div>
-        <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="border-b text-muted-foreground"><tr><th className="py-3">Account</th><th>Added leads</th><th>Last submission</th><th /></tr></thead><tbody>{data.accounts.filter(u => u.email.toLowerCase().includes(search.toLowerCase())).map(u => { const submissions = data.activity.filter(a => a.user_id === u.id); return <tr key={u.id} className="border-b"><td className="py-4 pr-4"><Button variant="link" className="h-auto p-0" onClick={() => { setAccount(u.id); window.scrollTo({ top: 0, behavior: "smooth" }); }}>{u.email}</Button></td><td>{submissions.length}</td><td className="whitespace-nowrap pr-4">{submissions[0] ? new Date(submissions[0].added_at).toLocaleString() : '—'}</td><td><Button title="Remove account" aria-label={`Remove ${u.email}`} variant="ghost" size="icon" disabled={u.id === data.selfId || deletion.isPending} onClick={() => { if (window.confirm(`Remove ${u.email}? Their leads and history will be preserved.`)) deletion.mutate(u.id); }}><Trash2 className="size-4 text-destructive" /></Button></td></tr>; })}</tbody></table></div>
+        <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="border-b text-muted-foreground"><tr><th className="py-3">Account</th><th>Added leads</th><th>Last submission</th><th /></tr></thead><tbody>{data.accounts.filter(u => u.email.toLowerCase().includes(search.toLowerCase())).map(u => { const submissions = data.activity.filter(a => a.user_id === u.id); return <tr key={u.id} className="border-b"><td className="py-4 pr-4"><Button variant="link" className="h-auto p-0" title="Open this account's workspace" onClick={() => openWorkspace(u.id)}>{u.email}</Button></td><td>{submissions.length}</td><td className="whitespace-nowrap pr-4">{submissions[0] ? new Date(submissions[0].added_at).toLocaleString() : '—'}</td><td className="flex justify-end gap-1"><Button title="Filter submission history" aria-label={`Filter history for ${u.email}`} variant="ghost" size="icon" onClick={() => setAccount(account === u.id ? '' : u.id)}><Filter className="size-4" /></Button><Button title="Open this account's workspace" aria-label={`Open ${u.email} workspace`} variant="ghost" size="icon" onClick={() => openWorkspace(u.id)}><Eye className="size-4" /></Button><Button title="Remove account" aria-label={`Remove ${u.email}`} variant="ghost" size="icon" disabled={u.id === data.selfId || deletion.isPending} onClick={() => { if (window.confirm(`Remove ${u.email}? Their leads and history will be preserved.`)) deletion.mutate(u.id); }}><Trash2 className="size-4 text-destructive" /></Button></td></tr>; })}</tbody></table></div>
         <div className="mb-4 mt-10 flex items-center justify-between"><h2 className="flex items-center gap-2 text-xl font-semibold"><Clock className="size-5" /> Submission history</h2>{account && <Button variant="ghost" onClick={() => setAccount('')}>All accounts</Button>}</div>
         <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="border-b text-muted-foreground"><tr><th className="py-3">Account</th><th>Date & time</th><th>Leads</th></tr></thead><tbody>{data.activity.filter(a => !account || a.user_id === account).map(a => <tr key={a.id} className="border-b"><td className="py-3 pr-4">{data.accounts.find(u => u.id === a.user_id)?.email ?? 'Removed account'}</td><td className="whitespace-nowrap">{new Date(a.added_at).toLocaleString()}</td><td>1</td></tr>)}</tbody></table>{data.activity.length === 0 && <p className="py-8 text-muted-foreground">No new submissions yet.</p>}</div>
       </>}
@@ -56,53 +58,6 @@ function CreateAccount({ onDone }: { onDone: () => void }) {
     <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold"><UserPlus className="size-5" /> Create account</h2>
     <div className="flex flex-wrap gap-3"><Input aria-label="New account email" type="email" required placeholder="email@example.com" className="max-w-xs" value={email} onChange={e => setEmail(e.target.value)} /><Input aria-label="New account password" required minLength={6} placeholder="Password (min 6)" className="max-w-xs" value={password} onChange={e => setPassword(e.target.value)} /><Button type="submit" disabled={m.isPending}>{m.isPending ? 'Creating…' : 'Create'}</Button></div>
   </form>;
-}
-
-type Tab = 'active' | 'verified' | 'archived' | 'trash' | 'all';
-function AccountProfile({ userId, email, onClose }: { userId: string; email: string; onClose: () => void }) {
-  const load = accountLeads;
-  const update = updateAccountLead;
-  const qc = useQueryClient();
-  const [tab, setTab] = useState<Tab>('active');
-  const [search, setSearch] = useState('');
-  const [link, setLink] = useState('');
-  const [phone, setPhone] = useState('');
-  const q = useQuery({ ...recoveryQueryOptions, queryKey: ['account-leads', userId], queryFn: ({ signal }) => boundedRequest(s => load({ data: { userId }, signal: s }), undefined, signal) });
-  const refresh = () => { qc.invalidateQueries({ queryKey: ['account-leads', userId] }); qc.invalidateQueries({ queryKey: ['admin-all-leads'] }); qc.invalidateQueries({ queryKey: ['admin-dashboard'] }); };
-  const m = useMutation({ mutationFn: (v: { id: string; action: 'verify' | 'unverify' | 'archive' | 'unarchive' | 'trash' | 'restore' | 'delete' | 'phone'; phone?: string }) => update({ data: v }), onSuccess: refresh, onError: (e: Error) => toast.error(e.message) });
-  const add = useMutation({ mutationFn: () => addAccountLead({ data: { userId, link, phone } }), onSuccess: () => { toast.success('Lead add hoyeche'); setLink(''); setPhone(''); refresh(); }, onError: (e: Error) => toast.error(e.message) });
-  const rows = q.data ?? [];
-  const match = (t: Tab, l: (typeof rows)[number]) => t === 'all' ? true : t === 'trash' ? !!l.deleted_at : l.deleted_at ? false : t === 'archived' ? l.archived : t === 'verified' ? l.verified && !l.archived : !l.archived;
-  const inTab = (l: (typeof rows)[number]) => match(tab, l);
-  const s = search.trim().toLowerCase();
-  const shown = rows.filter(inTab).filter(l => !s || [String(l.serial), l.facebook_link, l.phone ?? ''].some(x => x.toLowerCase().includes(s)));
-  const count = (t: Tab) => rows.filter(l => match(t, l)).length;
-  return <section className="mb-10 rounded-lg border p-5">
-    <div className="mb-4 flex items-center justify-between gap-4"><h2 className="text-xl font-semibold">{email} — leads ({rows.length})</h2><Button variant="ghost" size="icon" aria-label="Close profile" onClick={onClose}><X /></Button></div>
-    <form className="mb-4 flex flex-wrap gap-3" onSubmit={e => { e.preventDefault(); add.mutate(); }}>
-      <Input aria-label="Facebook link" required placeholder="Facebook link" className="max-w-sm" value={link} onChange={e => setLink(e.target.value)} />
-      <Input aria-label="Phone (optional)" placeholder="Phone (optional)" className="max-w-[12rem]" value={phone} onChange={e => setPhone(e.target.value)} />
-      <Button type="submit" disabled={add.isPending}><Plus /> {add.isPending ? 'Adding…' : 'Add lead for this account'}</Button>
-    </form>
-    <div className="mb-4 flex flex-wrap items-center gap-2">
-      {(['active', 'verified', 'archived', 'trash', 'all'] as Tab[]).map(t => <Button key={t} size="sm" variant={tab === t ? 'secondary' : 'outline'} onClick={() => setTab(t)} className="capitalize">{t} ({count(t)})</Button>)}
-      <Input aria-label="Search account leads" className="ml-auto max-w-xs" placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} />
-    </div>
-    {q.isPending ? <p>Loading…</p> : q.isError ? <div><p>{q.error instanceof Error ? q.error.message : 'Load hoyni — abar try korun.'}</p><Button variant="outline" onClick={() => q.refetch()}>Retry</Button></div> : shown.length === 0 ? <p className="text-muted-foreground">No leads here.</p> :
-    <div className="max-h-[32rem] overflow-auto"><table className="w-full text-left text-sm"><thead className="sticky top-0 border-b bg-background text-muted-foreground"><tr><th className="py-2">#</th><th>Facebook</th><th>Phone</th><th>Status</th><th>Actions</th></tr></thead><tbody>{shown.map(l => <tr key={l.id} className="border-b">
-      <td className="py-2 pr-3">{l.serial}</td>
-      <td className="max-w-xs truncate pr-3"><a className="inline-flex items-center gap-1 text-primary underline" href={l.facebook_link} target="_blank" rel="noreferrer">{l.facebook_link}<ExternalLink className="size-3" /></a></td>
-      <td className="pr-3"><Input aria-label="Phone" className="h-8 w-36" defaultValue={l.phone ?? ''} onBlur={e => { if (e.target.value !== (l.phone ?? '')) m.mutate({ id: l.id, action: 'phone', phone: e.target.value }); }} /></td>
-      <td className="whitespace-nowrap pr-3 text-xs">{l.deleted_at ? 'Trash' : l.archived ? 'Archived' : l.verified ? 'Verified' : 'New'}</td>
-      <td className="whitespace-nowrap">
-        <Button variant="ghost" size="icon" title={l.verified ? 'Unverify' : 'Verify'} onClick={() => m.mutate({ id: l.id, action: l.verified ? 'unverify' : 'verify' })}><Check className={l.verified ? 'text-primary' : ''} /></Button>
-        <Button variant="ghost" size="icon" title={l.archived ? 'Unarchive' : 'Archive'} onClick={() => m.mutate({ id: l.id, action: l.archived ? 'unarchive' : 'archive' })}>{l.archived ? <ArchiveRestore /> : <Archive />}</Button>
-        {l.deleted_at
-          ? <Button variant="ghost" size="icon" title="Restore" onClick={() => m.mutate({ id: l.id, action: 'restore' })}><RotateCcw /></Button>
-          : <Button variant="ghost" size="icon" title="Move to trash" onClick={() => m.mutate({ id: l.id, action: 'trash' })}><Trash2 /></Button>}
-        <Button variant="ghost" size="icon" title="Delete permanently" onClick={() => { if (window.confirm('Delete this lead permanently?')) m.mutate({ id: l.id, action: 'delete' }); }}><X className="text-destructive" /></Button>
-      </td></tr>)}</tbody></table></div>}
-    </section>;
 }
 
 function AllLeads({ accounts }: { accounts: { id: string; email: string }[] }) {
