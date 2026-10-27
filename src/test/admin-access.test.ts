@@ -9,7 +9,7 @@ vi.mock('@/integrations/supabase/client', () => ({
     from: (...a: unknown[]) => from(...a),
   },
 }));
-import { adminDashboard, removeAccount, allLeads } from '@/lib/admin.functions';
+import { adminDashboard, removeAccount, allLeads, accountEmail } from '@/lib/admin.functions';
 
 const OTHER = '11111111-1111-4111-8111-111111111111';
 describe('Admin account permissions', () => {
@@ -32,6 +32,15 @@ describe('Admin account permissions', () => {
     rpc.mockResolvedValue({ data: false, error: null });
     await expect(allLeads()).rejects.toThrow('Admin access required');
     expect(from).not.toHaveBeenCalled();
+  });
+  it('denies another account\'s workspace details to a non-admin account', async () => {
+    rpc.mockResolvedValue({ data: false, error: null });
+    await expect(accountEmail({ data: { userId: OTHER } })).rejects.toThrow('Admin access required');
+    expect(rpc).not.toHaveBeenCalledWith('admin_list_accounts');
+  });
+  it('names the account whose workspace an admin is opening', async () => {
+    rpc.mockResolvedValueOnce({ data: true, error: null }).mockResolvedValueOnce({ data: [{ id: OTHER, email: 'member@example.com', created_at: new Date().toISOString() }], error: null });
+    await expect(accountEmail({ data: { userId: OTHER } })).resolves.toBe('member@example.com');
   });
   it('loads every lead across all accounts for an admin', async () => {
     rpc.mockResolvedValue({ data: true, error: null });
