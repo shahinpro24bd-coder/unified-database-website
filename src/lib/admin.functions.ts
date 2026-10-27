@@ -50,19 +50,15 @@ export async function createAccount({ data }: { data: { email: string; password:
   return { ok: true };
 }
 
-export async function accountLeads({ data, signal }: { data: { userId: string }; signal?: AbortSignal }) {
+// Name shown in the "viewing as" banner; the admin-checked RPC keeps it admin-only.
+export async function accountEmail({ data, signal }: { data: { userId: string }; signal?: AbortSignal }) {
   const { userId } = z.object({ userId: z.string().uuid() }).parse(data);
   await requireAdmin();
-  const rows: { id: string; serial: number; phone: string | null; facebook_link: string; verified: boolean; archived: boolean; deleted_at: string | null; created_at: string }[] = [];
-  for (let start = 0; ; start += 1000) {
-    let q = supabase.from('leads').select('id,serial,phone,facebook_link,verified,archived,deleted_at,created_at').eq('user_id', userId).order('serial', { ascending: false }).range(start, start + 999);
-    if (signal) q = q.abortSignal(signal);
-    const { data: page, error } = await q;
-    if (error) throw new Error(error.message);
-    rows.push(...(page ?? []));
-    if (!page || page.length < 1000) break;
-  }
-  return rows;
+  let req = supabase.rpc('admin_list_accounts');
+  if (signal) req = req.abortSignal(signal);
+  const { data: rows, error } = await req;
+  if (error) throw new Error(error.message);
+  return (rows ?? []).find(r => r.id === userId)?.email ?? 'Unknown account';
 }
 
 export async function allLeads(opts?: Opts) {
@@ -78,14 +74,6 @@ export async function allLeads(opts?: Opts) {
     if (!page || page.length < 1000) break;
   }
   return rows;
-}
-
-export async function addAccountLead({ data }: { data: { userId: string; link: string; phone?: string } }) {
-  const v = z.object({ userId: z.string().uuid(), link: z.string().trim().min(1).max(500), phone: z.string().trim().max(50).optional() }).parse(data);
-  await requireAdmin();
-  const { error } = await supabase.from('leads').insert({ user_id: v.userId, facebook_link: v.link, canonical_link: v.link, phone: v.phone || null, serial: 0 });
-  if (error) throw new Error(error.code === '23505' ? 'Ei link already kono account e add kora ache.' : error.message);
-  return { ok: true };
 }
 
 export async function updateAccountLead({ data }: { data: { id: string; action: 'verify' | 'unverify' | 'archive' | 'unarchive' | 'trash' | 'restore' | 'delete' | 'phone'; phone?: string } }) {
