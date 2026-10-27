@@ -19,3 +19,4 @@
 - vite.config.ts switches nitro to the "vercel" preset only when VERCEL is set, so the same repo deploys on Vercel while Lovable builds stay on Lovable hosting.
 - Admin data access runs from the browser through admin-checked database functions and admin row policies (no server secrets), so the admin page works on hosts without the service key such as Vercel.
 - The admin "Show all leads" list uses a realtime channel (admin-all-leads) on public.leads; keep leads and lead_activity in the supabase_realtime publication when touching schema.
+- Admin "view as" reuses the user's own workspace at /leads?as=<user id> instead of a parallel admin UI; the page must re-check has_role before rendering and rely on admin row policies, so one interface serves both roles and non-admins see nothing.
