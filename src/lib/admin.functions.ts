@@ -80,6 +80,14 @@ export async function allLeads(opts?: Opts) {
   return rows;
 }
 
+export async function addAccountLead({ data }: { data: { userId: string; link: string; phone?: string } }) {
+  const v = z.object({ userId: z.string().uuid(), link: z.string().trim().min(1).max(500), phone: z.string().trim().max(50).optional() }).parse(data);
+  await requireAdmin();
+  const { error } = await supabase.from('leads').insert({ user_id: v.userId, facebook_link: v.link, canonical_link: v.link, phone: v.phone || null, serial: 0 });
+  if (error) throw new Error(error.code === '23505' ? 'Ei link already kono account e add kora ache.' : error.message);
+  return { ok: true };
+}
+
 export async function updateAccountLead({ data }: { data: { id: string; action: 'verify' | 'unverify' | 'archive' | 'unarchive' | 'trash' | 'restore' | 'delete' | 'phone'; phone?: string } }) {
   const v = z.object({
     id: z.string().uuid(),
