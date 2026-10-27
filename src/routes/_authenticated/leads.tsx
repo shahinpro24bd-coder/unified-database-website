@@ -69,7 +69,7 @@ export const Route = createFileRoute("/_authenticated/leads")({
   // ?as=<account id> opens another account's workspace — admin only, checked below.
   validateSearch: (search: Record<string, unknown>): { as?: string } => {
     const parsed = z.object({ as: z.string().uuid().optional() }).safeParse(search);
-    return { as: parsed.success ? parsed.data.as : undefined };
+    return parsed.success && parsed.data.as ? { as: parsed.data.as } : {};
   },
   head: () => ({
     meta: [
