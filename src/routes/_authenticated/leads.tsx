@@ -1,10 +1,13 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
+import { z } from "zod";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import {
   ExternalLink,
+  ArrowLeft,
+  Eye,
   Trash2,
   LogOut,
   Plus,
@@ -27,6 +30,7 @@ import { TeamBrand } from "@/components/team-brand";
 import { DEFAULT_LEAD_VIEW, LeadStatus } from "@/components/lead-status";
 import { signOutThisDevice } from "@/lib/account-session";
 import { boundedRequest, recoveryQueryOptions } from "@/lib/request-recovery";
+import { accountEmail } from "@/lib/admin.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,6 +66,11 @@ type Collected = {
 
 
 export const Route = createFileRoute("/_authenticated/leads")({
+  // ?as=<account id> opens another account's workspace — admin only, checked below.
+  validateSearch: (search: Record<string, unknown>): { as?: string } => {
+    const parsed = z.object({ as: z.string().uuid().optional() }).safeParse(search);
+    return { as: parsed.success ? parsed.data.as : undefined };
+  },
   head: () => ({
     meta: [
       { title: "Lead Workspace — TEAM SHAHIN" },
@@ -81,6 +90,9 @@ export const Route = createFileRoute("/_authenticated/leads")({
 function LeadsPage() {
   const { user } = Route.useRouteContext();
   const navigate = useNavigate();
+  const { as: actingAs } = Route.useSearch();
+  const actingAsOther = Boolean(actingAs && actingAs !== user.id);
+  const targetId = actingAsOther && actingAs ? actingAs : user.id;
   const qc = useQueryClient();
   const [link, setLink] = useState("");
   const [phone, setPhone] = useState("");
@@ -99,12 +111,12 @@ function LeadsPage() {
     refetch: refetchLeads,
   } = useQuery({
     ...recoveryQueryOptions,
-    queryKey: ["leads"],
+    queryKey: ["leads", targetId],
     queryFn: async ({ signal }): Promise<Lead[]> => {
-      const uid = user.id;
+      const uid = targetId;
 
       // 30 din er purono trash auto delete — background-e, fail korleo page atkabe na.
-      void boundedRequest(s => supabase.rpc("purge_old_trash").abortSignal(s)).catch(() => undefined);
+      if (!actingAsOther) void boundedRequest(s => supabase.rpc("purge_old_trash").abortSignal(s)).catch(() => undefined);
 
       // 1000 row er limit er jonno page by page sob lead ana hoy.
       const PAGE = 1000;
@@ -124,7 +136,7 @@ function LeadsPage() {
     },
   });
 
-  const { data: isAdmin = false } = useQuery({
+  const { data: isAdmin = false, isPending: rolePending } = useQuery({
     ...recoveryQueryOptions,
     queryKey: ["admin-role"],
     queryFn: async ({ signal }) => {
@@ -133,10 +145,16 @@ function LeadsPage() {
       return result.data;
     },
   });
+  const { data: targetEmail } = useQuery({
+    ...recoveryQueryOptions,
+    queryKey: ["account-email", targetId],
+    enabled: actingAsOther,
+    queryFn: async ({ signal }) => boundedRequest(s => accountEmail({ data: { userId: targetId }, signal: s }), undefined, signal),
+  });
   const { data: collected = [], isLoading: collectedLoading, isError: previousError, refetch: refetchPrevious } = useQuery({
     ...recoveryQueryOptions,
     queryKey: ["previous-version-leads"],
-    enabled: view === "collected",
+    enabled: view === "collected" && !actingAsOther,
     queryFn: async ({ signal }): Promise<Collected[]> => {
       const all: Collected[] = [];
       for (let start = 0; ; start += 1000) {
@@ -177,7 +195,7 @@ function LeadsPage() {
       }
 
       const { error } = await supabase.from("leads").insert({
-        user_id: uid,
+        user_id: targetId,
         facebook_link: trimmedLink.slice(0, 500),
         // The database trigger replaces this with the authoritative canonical value.
         canonical_link: trimmedLink.slice(0, 500),
@@ -228,7 +246,7 @@ function LeadsPage() {
         }
         seen.add(key);
 
-        rows.push({ user_id: uid, facebook_link: url, canonical_link: url, serial: 0 });
+        rows.push({ user_id: targetId, facebook_link: url, canonical_link: url, serial: 0 });
       }
 
       if (rows.length === 0)
@@ -371,6 +389,11 @@ function LeadsPage() {
   useEffect(() => {
     setSelected([]);
   }, [view]);
+
+  // "Previous version" rows belong to the signed-in admin, never to the viewed account.
+  useEffect(() => {
+    if (actingAsOther && view === "collected") setView("active");
+  }, [actingAsOther, view]);
 
   const visibleIds = filtered.map((l) => l.id);
   const selectedVisible = selected.filter((id) => visibleIds.includes(id));
