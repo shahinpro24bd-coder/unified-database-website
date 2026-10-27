@@ -6,7 +6,7 @@ import { Trash2, Users, Clock, ListChecks, Plus, UserPlus, Check, Archive, Archi
 import { TeamBrand } from '@/components/team-brand';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { adminDashboard, removeAccount, createAccount, accountLeads, updateAccountLead, allLeads } from '@/lib/admin.functions';
+import { adminDashboard, removeAccount, createAccount, accountLeads, updateAccountLead, allLeads, addAccountLead } from '@/lib/admin.functions';
 import { boundedRequest, recoveryQueryOptions } from '@/lib/request-recovery';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -72,10 +72,11 @@ function AccountProfile({ userId, email, onClose }: { userId: string; email: str
   const m = useMutation({ mutationFn: (v: { id: string; action: 'verify' | 'unverify' | 'archive' | 'unarchive' | 'trash' | 'restore' | 'delete' | 'phone'; phone?: string }) => update({ data: v }), onSuccess: refresh, onError: (e: Error) => toast.error(e.message) });
   const add = useMutation({ mutationFn: () => addAccountLead({ data: { userId, link, phone } }), onSuccess: () => { toast.success('Lead add hoyeche'); setLink(''); setPhone(''); refresh(); }, onError: (e: Error) => toast.error(e.message) });
   const rows = q.data ?? [];
-  const inTab = (l: (typeof rows)[number]) => tab === 'all' ? true : tab === 'trash' ? !!l.deleted_at : l.deleted_at ? false : tab === 'archived' ? l.archived : tab === 'verified' ? l.verified && !l.archived : !l.archived;
+  const match = (t: Tab, l: (typeof rows)[number]) => t === 'all' ? true : t === 'trash' ? !!l.deleted_at : l.deleted_at ? false : t === 'archived' ? l.archived : t === 'verified' ? l.verified && !l.archived : !l.archived;
+  const inTab = (l: (typeof rows)[number]) => match(tab, l);
   const s = search.trim().toLowerCase();
   const shown = rows.filter(inTab).filter(l => !s || [String(l.serial), l.facebook_link, l.phone ?? ''].some(x => x.toLowerCase().includes(s)));
-  const count = (t: Tab) => rows.filter(l => { const p = tab; void p; return t === 'all' ? true : t === 'trash' ? !!l.deleted_at : l.deleted_at ? false : t === 'archived' ? l.archived : t === 'verified' ? l.verified && !l.archived : !l.archived; }).length;
+  const count = (t: Tab) => rows.filter(l => match(t, l)).length;
   return <section className="mb-10 rounded-lg border p-5">
     <div className="mb-4 flex items-center justify-between gap-4"><h2 className="text-xl font-semibold">{email} — leads ({rows.length})</h2><Button variant="ghost" size="icon" aria-label="Close profile" onClick={onClose}><X /></Button></div>
     <form className="mb-4 flex flex-wrap gap-3" onSubmit={e => { e.preventDefault(); add.mutate(); }}>
