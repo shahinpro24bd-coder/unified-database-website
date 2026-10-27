@@ -69,7 +69,7 @@ export const Route = createFileRoute("/_authenticated/leads")({
   // ?as=<account id> opens another account's workspace — admin only, checked below.
   validateSearch: (search: Record<string, unknown>): { as?: string } => {
     const parsed = z.object({ as: z.string().uuid().optional() }).safeParse(search);
-    return { as: parsed.success ? parsed.data.as : undefined };
+    return parsed.success && parsed.data.as ? { as: parsed.data.as } : {};
   },
   head: () => ({
     meta: [
@@ -447,7 +447,7 @@ function LeadsPage() {
       {actingAsOther && (
         <div className="mx-auto max-w-7xl px-5 pt-6 sm:px-8">
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/10 px-4 py-3">
-            <p className="flex items-center gap-2 text-sm font-medium"><Eye className="size-4 shrink-0" /> Admin view: {targetEmail ?? actingAs} er workspace dekhano hocche.</p>
+            <p className="flex items-center gap-2 text-sm font-medium"><Eye className="size-4 shrink-0" /> Admin view: {targetEmail ?? "onno account"} er workspace dekhano hocche.</p>
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={() => navigate({ to: "/leads", search: {} })}><RotateCcw className="mr-2 size-4" /> Nijer workspace</Button>
               <Button size="sm" asChild><Link to="/admin"><ArrowLeft className="mr-2 size-4" /> Admin e firun</Link></Button>

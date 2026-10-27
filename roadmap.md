@@ -16,3 +16,4 @@
 - [x] Logo served as a plain file so it loads on any host (e.g. Vercel).
 - [x] Admin account shahinpro24@gmail.com created with admin role.
 - [x] Sign-up removed from login; admin login opens Admin; admin creates accounts, opens any account's leads and manages them; Collect leads button on Admin.
+- [x] Admin account click opens that account's own workspace (/leads?as=<id>) — same interface the account sees, admin-only guard, verified in preview.
