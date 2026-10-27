@@ -58,16 +58,37 @@ function CreateAccount({ onDone }: { onDone: () => void }) {
   </form>;
 }
 
+type Tab = 'active' | 'verified' | 'archived' | 'trash' | 'all';
 function AccountProfile({ userId, email, onClose }: { userId: string; email: string; onClose: () => void }) {
   const load = accountLeads;
   const update = updateAccountLead;
   const qc = useQueryClient();
+  const [tab, setTab] = useState<Tab>('active');
+  const [search, setSearch] = useState('');
+  const [link, setLink] = useState('');
+  const [phone, setPhone] = useState('');
   const q = useQuery({ ...recoveryQueryOptions, queryKey: ['account-leads', userId], queryFn: ({ signal }) => boundedRequest(s => load({ data: { userId }, signal: s }), undefined, signal) });
-  const m = useMutation({ mutationFn: (v: { id: string; action: 'verify' | 'unverify' | 'archive' | 'unarchive' | 'trash' | 'restore' | 'delete' | 'phone'; phone?: string }) => update({ data: v }), onSuccess: () => qc.invalidateQueries({ queryKey: ['account-leads', userId] }), onError: (e: Error) => toast.error(e.message) });
+  const refresh = () => { qc.invalidateQueries({ queryKey: ['account-leads', userId] }); qc.invalidateQueries({ queryKey: ['admin-all-leads'] }); qc.invalidateQueries({ queryKey: ['admin-dashboard'] }); };
+  const m = useMutation({ mutationFn: (v: { id: string; action: 'verify' | 'unverify' | 'archive' | 'unarchive' | 'trash' | 'restore' | 'delete' | 'phone'; phone?: string }) => update({ data: v }), onSuccess: refresh, onError: (e: Error) => toast.error(e.message) });
+  const add = useMutation({ mutationFn: () => addAccountLead({ data: { userId, link, phone } }), onSuccess: () => { toast.success('Lead add hoyeche'); setLink(''); setPhone(''); refresh(); }, onError: (e: Error) => toast.error(e.message) });
+  const rows = q.data ?? [];
+  const inTab = (l: (typeof rows)[number]) => tab === 'all' ? true : tab === 'trash' ? !!l.deleted_at : l.deleted_at ? false : tab === 'archived' ? l.archived : tab === 'verified' ? l.verified && !l.archived : !l.archived;
+  const s = search.trim().toLowerCase();
+  const shown = rows.filter(inTab).filter(l => !s || [String(l.serial), l.facebook_link, l.phone ?? ''].some(x => x.toLowerCase().includes(s)));
+  const count = (t: Tab) => rows.filter(l => { const p = tab; void p; return t === 'all' ? true : t === 'trash' ? !!l.deleted_at : l.deleted_at ? false : t === 'archived' ? l.archived : t === 'verified' ? l.verified && !l.archived : !l.archived; }).length;
   return <section className="mb-10 rounded-lg border p-5">
-    <div className="mb-4 flex items-center justify-between gap-4"><h2 className="text-xl font-semibold">{email} — leads ({q.data?.length ?? 0})</h2><Button variant="ghost" size="icon" aria-label="Close profile" onClick={onClose}><X /></Button></div>
-    {q.isPending ? <p>Loading…</p> : q.isError ? <div><p>{q.error instanceof Error ? q.error.message : 'Load hoyni — abar try korun.'}</p><Button variant="outline" onClick={() => q.refetch()}>Retry</Button></div> : q.data.length === 0 ? <p className="text-muted-foreground">No leads in this account.</p> :
-    <div className="max-h-[32rem] overflow-auto"><table className="w-full text-left text-sm"><thead className="sticky top-0 border-b bg-background text-muted-foreground"><tr><th className="py-2">#</th><th>Facebook</th><th>Phone</th><th>Status</th><th>Actions</th></tr></thead><tbody>{q.data.map(l => <tr key={l.id} className="border-b">
+    <div className="mb-4 flex items-center justify-between gap-4"><h2 className="text-xl font-semibold">{email} — leads ({rows.length})</h2><Button variant="ghost" size="icon" aria-label="Close profile" onClick={onClose}><X /></Button></div>
+    <form className="mb-4 flex flex-wrap gap-3" onSubmit={e => { e.preventDefault(); add.mutate(); }}>
+      <Input aria-label="Facebook link" required placeholder="Facebook link" className="max-w-sm" value={link} onChange={e => setLink(e.target.value)} />
+      <Input aria-label="Phone (optional)" placeholder="Phone (optional)" className="max-w-[12rem]" value={phone} onChange={e => setPhone(e.target.value)} />
+      <Button type="submit" disabled={add.isPending}><Plus /> {add.isPending ? 'Adding…' : 'Add lead for this account'}</Button>
+    </form>
+    <div className="mb-4 flex flex-wrap items-center gap-2">
+      {(['active', 'verified', 'archived', 'trash', 'all'] as Tab[]).map(t => <Button key={t} size="sm" variant={tab === t ? 'secondary' : 'outline'} onClick={() => setTab(t)} className="capitalize">{t} ({count(t)})</Button>)}
+      <Input aria-label="Search account leads" className="ml-auto max-w-xs" placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} />
+    </div>
+    {q.isPending ? <p>Loading…</p> : q.isError ? <div><p>{q.error instanceof Error ? q.error.message : 'Load hoyni — abar try korun.'}</p><Button variant="outline" onClick={() => q.refetch()}>Retry</Button></div> : shown.length === 0 ? <p className="text-muted-foreground">No leads here.</p> :
+    <div className="max-h-[32rem] overflow-auto"><table className="w-full text-left text-sm"><thead className="sticky top-0 border-b bg-background text-muted-foreground"><tr><th className="py-2">#</th><th>Facebook</th><th>Phone</th><th>Status</th><th>Actions</th></tr></thead><tbody>{shown.map(l => <tr key={l.id} className="border-b">
       <td className="py-2 pr-3">{l.serial}</td>
       <td className="max-w-xs truncate pr-3"><a className="inline-flex items-center gap-1 text-primary underline" href={l.facebook_link} target="_blank" rel="noreferrer">{l.facebook_link}<ExternalLink className="size-3" /></a></td>
       <td className="pr-3"><Input aria-label="Phone" className="h-8 w-36" defaultValue={l.phone ?? ''} onBlur={e => { if (e.target.value !== (l.phone ?? '')) m.mutate({ id: l.id, action: 'phone', phone: e.target.value }); }} /></td>
@@ -75,8 +96,10 @@ function AccountProfile({ userId, email, onClose }: { userId: string; email: str
       <td className="whitespace-nowrap">
         <Button variant="ghost" size="icon" title={l.verified ? 'Unverify' : 'Verify'} onClick={() => m.mutate({ id: l.id, action: l.verified ? 'unverify' : 'verify' })}><Check className={l.verified ? 'text-primary' : ''} /></Button>
         <Button variant="ghost" size="icon" title={l.archived ? 'Unarchive' : 'Archive'} onClick={() => m.mutate({ id: l.id, action: l.archived ? 'unarchive' : 'archive' })}>{l.archived ? <ArchiveRestore /> : <Archive />}</Button>
-        {l.deleted_at && <Button variant="ghost" size="icon" title="Restore" onClick={() => m.mutate({ id: l.id, action: 'restore' })}><RotateCcw /></Button>}
-        <Button variant="ghost" size="icon" title="Delete permanently" onClick={() => { if (window.confirm('Delete this lead permanently?')) m.mutate({ id: l.id, action: 'delete' }); }}><Trash2 className="text-destructive" /></Button>
+        {l.deleted_at
+          ? <Button variant="ghost" size="icon" title="Restore" onClick={() => m.mutate({ id: l.id, action: 'restore' })}><RotateCcw /></Button>
+          : <Button variant="ghost" size="icon" title="Move to trash" onClick={() => m.mutate({ id: l.id, action: 'trash' })}><Trash2 /></Button>}
+        <Button variant="ghost" size="icon" title="Delete permanently" onClick={() => { if (window.confirm('Delete this lead permanently?')) m.mutate({ id: l.id, action: 'delete' }); }}><X className="text-destructive" /></Button>
       </td></tr>)}</tbody></table></div>}
     </section>;
 }
