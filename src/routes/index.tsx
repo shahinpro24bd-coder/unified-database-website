@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { recoverSession } from "@/lib/session-recovery";
 import { TeamBrand } from "@/components/team-brand";
 import { LoaderCircle } from "lucide-react";
+import { SHARE_IMAGE, SITE_ORIGIN } from "@/lib/brand";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -19,7 +20,10 @@ export const Route = createFileRoute("/")({
         content: "Manage your team's lead collection in TEAM SHAHIN.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: `${SITE_ORIGIN}/` },
+      { property: "og:image", content: SHARE_IMAGE },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: SHARE_IMAGE },
     ],
   }),
   component: Index,
