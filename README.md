@@ -3,7 +3,7 @@
 Private team workspace for collecting, verifying and archiving leads.
 
 - **Stack:** TanStack Start (React 19 + TypeScript), Tailwind CSS v4
-- **Data & auth:** Lovable Cloud (PostgreSQL)
+- **Data & auth:** managed Postgres backend (Supabase-compatible)
 - **Hosting:** any Node/edge host; Vercel is supported through `vite.config.ts`
 
 ## Development
