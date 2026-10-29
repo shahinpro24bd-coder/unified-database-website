@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { Route as IndexRoute } from "@/routes/index";
@@ -52,7 +52,7 @@ describe("Shared-link branding", () => {
   });
 
   it("ships the share card the metadata points at", () => {
-    const bytes = readFileSync(fileURLToPath(new URL("../../public/share-card.png", import.meta.url)));
+    const bytes = readFileSync(resolve("public/share-card.png"));
     expect(bytes.length).toBeGreaterThan(1000);
     expect(bytes.subarray(1, 4).toString()).toBe("PNG");
   });
