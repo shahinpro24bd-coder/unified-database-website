@@ -9,7 +9,7 @@
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
 - Serve the brand logo from public/ as a plain file, not a Lovable asset pointer, so it loads on any host.
-- Derive favicon, Apple touch icon and manifest icons from the current brand logo; use separate mask-safe app icon padding to preserve the symbol under launcher cropping.
+- Derive every site icon (favicon.ico, favicon PNG, Apple touch icon, manifest/maskable app icons) and the 1200x630 link-preview card public/share-card.png from the current brand logo; use separate mask-safe app icon padding to preserve the symbol under launcher cropping, and reference the card through absolute og:image/twitter:image URLs built from src/lib/brand.ts because crawlers cannot resolve relative paths.
 - previous_version_leads returns only archive rows whose original user_id matches the caller; global canonical_link uniqueness on leads blocks re-adding any link from any account.
 
 - Keep lead collection and the lead register above the overview and feature navigation; share presentation tokens in src/styles.css to keep user, sign-in and admin screens consistent.
