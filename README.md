@@ -1,20 +1,14 @@
-# Smart Lead Manager
+# TEAM SHAHIN — Lead Workspace
 
-1.amar dewa zip website e ,,,cvs file er sob leads gulo previous version leads e jabe ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,2. varcel e host korle logo load hocche na so fix it .................3.  previous version leads user account e thakbe but onno user er kase onno account er leads show hobe na ,,,,,,,,,,,,,,that mean sob account er  previous version leads er part faka thakbe ,,,,,,,,,,but same lead je kuno account theke 1 bar er beshi dewa jabe na ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,admin page er username : shahinpro24@gmail.com  password : shahin11alom22 diba
+Private team workspace for collecting, verifying and archiving leads.
 
-This project was built with [Lovable](https://lovable.dev).
-
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/ec799d71-b7b7-44cd-bb81-3b9e811ab1f6).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+- **Stack:** TanStack Start (React 19 + TypeScript), Tailwind CSS v4
+- **Data & auth:** Lovable Cloud (PostgreSQL)
+- **Hosting:** any Node/edge host; Vercel is supported through `vite.config.ts`
 
 ## Development
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
 
 ```sh
 git clone <this-repository-url>
@@ -22,3 +16,18 @@ cd <repository-name>
 npm i
 npm run dev
 ```
+
+Then open the printed local address.
+
+## Environment variables
+
+| Variable | Purpose |
+| --- | --- |
+| `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` | Backend connection (browser) |
+| `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` | Backend connection (server) |
+| `VITE_SITE_URL` | Canonical site origin used for link-preview metadata; defaults to the current deployment |
+
+## Notes
+
+- Never commit account passwords or API keys to this repository. Share them through a password manager or the host's secret store instead.
+- Site icons and the link-preview card are generated from `public/team-shahin-logo-v2.png`; re-generate them if the brand mark changes.
