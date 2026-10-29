@@ -9,12 +9,14 @@ import { Input } from '@/components/ui/input';
 import { adminDashboard, removeAccount, createAccount, updateAccountLead, allLeads } from '@/lib/admin.functions';
 import { boundedRequest, recoveryQueryOptions } from '@/lib/request-recovery';
 import { supabase } from '@/integrations/supabase/client';
+import { SHARE_IMAGE, SITE_ORIGIN } from '@/lib/brand';
 
 export const Route = createFileRoute('/_authenticated/admin')({
   head: () => ({ meta: [
     { title: 'Admin Dashboard — TEAM SHAHIN' }, { name: 'description', content: 'TEAM SHAHIN account management and lead activity.' },
     { property: 'og:title', content: 'Admin Dashboard — TEAM SHAHIN' }, { property: 'og:description', content: 'Private team administration.' },
-    { property: 'og:type', content: 'website' }, { name: 'twitter:card', content: 'summary_large_image' },
+    { property: 'og:type', content: 'website' }, { property: 'og:url', content: `${SITE_ORIGIN}/admin` },
+    { property: 'og:image', content: SHARE_IMAGE }, { name: 'twitter:card', content: 'summary_large_image' }, { name: 'twitter:image', content: SHARE_IMAGE },
   ] }), component: AdminPage,
 });
 

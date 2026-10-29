@@ -11,6 +11,7 @@ import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import { accountDestination } from "@/lib/account-session";
 import { recoverSession } from "@/lib/session-recovery";
 import { boundedRequest, SESSION_TIMEOUT_MS } from "@/lib/request-recovery";
+import { SHARE_IMAGE, SITE_ORIGIN } from "@/lib/brand";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -23,7 +24,10 @@ export const Route = createFileRoute("/auth")({
       { property: "og:title", content: "Sign in — TEAM SHAHIN" },
       { property: "og:description", content: "Access your TEAM SHAHIN lead workspace." },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: `${SITE_ORIGIN}/auth` },
+      { property: "og:image", content: SHARE_IMAGE },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: SHARE_IMAGE },
     ],
   }),
   component: AuthPage,

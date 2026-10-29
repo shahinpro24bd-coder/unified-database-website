@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
+import { SHARE_IMAGE, SITE_ORIGIN } from "@/lib/brand";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import {
@@ -81,7 +82,10 @@ export const Route = createFileRoute("/_authenticated/leads")({
       { property: "og:title", content: "Lead Workspace — TEAM SHAHIN" },
       { property: "og:description", content: "Your TEAM SHAHIN lead collection, organised and verified." },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: `${SITE_ORIGIN}/leads` },
+      { property: "og:image", content: SHARE_IMAGE },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: SHARE_IMAGE },
     ],
   }),
   component: LeadsPage,
