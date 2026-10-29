@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
+import { SHARE_IMAGE, SITE_ORIGIN } from "@/lib/brand";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import {
