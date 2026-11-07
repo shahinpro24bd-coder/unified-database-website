@@ -2,13 +2,13 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Trash2, Users, Clock, ListChecks, Plus, UserPlus, Archive, ArchiveRestore, RotateCcw, ExternalLink, Eye, Filter } from 'lucide-react';
+import { Trash2, Users, Clock, ListChecks, Plus, UserPlus, Archive, ArchiveRestore, RotateCcw, ExternalLink, Eye, Filter, Pause, Play } from 'lucide-react';
 import { AdminDailyOverview } from '@/components/admin-daily-overview';
 import { LeadStatus } from '@/components/lead-status';
 import { TeamBrand } from '@/components/team-brand';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { adminDashboard, removeAccount, createAccount, updateAccountLead, allLeads } from '@/lib/admin.functions';
+import { adminDashboard, removeAccount, createAccount, updateAccountLead, allLeads, setAccountPaused } from '@/lib/admin.functions';
 import { boundedRequest, recoveryQueryOptions } from '@/lib/request-recovery';
 import { supabase } from '@/integrations/supabase/client';
 import { SHARE_IMAGE, SITE_ORIGIN } from '@/lib/brand';
@@ -33,6 +33,7 @@ function AdminPage() {
   const query = useQuery({ ...recoveryQueryOptions, queryKey: ['admin-dashboard'], queryFn: ({ signal }) => boundedRequest(s => load({ signal: s }), undefined, signal) });
   const deletion = useMutation({ mutationFn: (userId: string) => remove({ data: { userId } }), onSuccess: () => { toast.success('Account removed. Leads preserved.'); qc.invalidateQueries({ queryKey: ['admin-dashboard'] }); }, onError: (e: Error) => toast.error(e.message) });
   const data = query.data;
+  const pauseAccount = useMutation({ mutationFn: (data: { userId: string; paused: boolean }) => setAccountPaused({ data }), onSuccess: (_, v) => { toast.success(v.paused ? 'Account paused. Only admin can use this workspace.' : 'Account resumed. Login is available again.'); qc.invalidateQueries({ queryKey: ['admin-dashboard'] }); }, onError: (e: Error) => toast.error(e.message) });
   useEffect(() => {
     if (!data) return;
     let refreshTimer: ReturnType<typeof setTimeout> | undefined;
@@ -48,6 +49,7 @@ function AdminPage() {
     const channel = supabase.channel(`admin-activity-${crypto.randomUUID()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, refresh)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'lead_activity' }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'account_access' }, refresh)
       .subscribe();
     return () => { if (refreshTimer !== undefined) clearTimeout(refreshTimer); supabase.removeChannel(channel); };
   }, [Boolean(data), qc]);

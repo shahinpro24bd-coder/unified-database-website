@@ -8,12 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TeamBrand } from "@/components/team-brand";
 import { ArrowRight, Eye, EyeOff } from "lucide-react";
-import { accountDestination } from "@/lib/account-session";
+import { accountDestination, signOutThisDevice } from "@/lib/account-session";
+import { assertAccountActive, ACCOUNT_PAUSED_MESSAGE } from '@/lib/account-access';
 import { recoverSession } from "@/lib/session-recovery";
 import { boundedRequest, SESSION_TIMEOUT_MS } from "@/lib/request-recovery";
 import { SHARE_IMAGE, SITE_ORIGIN } from "@/lib/brand";
 
 export const Route = createFileRoute("/auth")({
+  validateSearch: (search: Record<string, unknown>) => ({ paused: search.paused === true || search.paused === 'true' }),
   head: () => ({
     meta: [
       { title: "Sign in — TEAM SHAHIN" },
@@ -39,11 +41,13 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [accessMessage, setAccessMessage] = useState('');
+  const paused = Route.useSearch().paused;
 
   useEffect(() => {
     let active = true;
     recoverSession().then(({ data }) => {
-      if (active && data.session) goHome(data.session.user.id);
+      if (active && data.session) void goHome(data.session.user.id).catch(() => undefined);
     }).catch(() => { /* Keep the sign-in form available if restoring a session fails. */ });
     return () => { active = false; };
   }, [navigate]);
@@ -66,6 +70,15 @@ function AuthPage() {
 
   const goHome = async (userId?: string) => {
     if (!userId) return navigate({ to: "/leads" });
+    try { await assertAccountActive(userId); }
+    catch (error) {
+      if (error instanceof Error && error.message === ACCOUNT_PAUSED_MESSAGE) {
+        setAccessMessage(ACCOUNT_PAUSED_MESSAGE);
+        await boundedRequest(() => signOutThisDevice(), SESSION_TIMEOUT_MS).catch(() => undefined);
+      }
+      throw error;
+    }
+    setAccessMessage('');
     await navigate({ to: await accountDestination(userId) });
   };
 
@@ -79,7 +92,7 @@ function AuthPage() {
     }
     if (result.redirected) return;
     const { data } = await recoverSession();
-    await goHome(data.session?.user.id);
+    await goHome(data.session?.user.id).catch(error => toast.error(error instanceof Error ? error.message : 'Sign-in failed'));
   };
 
   return (
@@ -94,6 +107,7 @@ function AuthPage() {
           <p className="mt-2 text-sm text-muted-foreground">TEAM SHAHIN-e sign in korun.</p>
         </div>
         <div>
+                {(paused || accessMessage) && <p role="alert" className="mb-4 border-l-2 border-destructive bg-muted p-3 text-sm text-destructive">{ACCOUNT_PAUSED_MESSAGE}</p>}
                 <form onSubmit={signIn} className="space-y-4 pt-2">
                   <div className="space-y-2">
                     <Label htmlFor="login-email">Email</Label>
