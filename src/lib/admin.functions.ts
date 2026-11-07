@@ -21,7 +21,12 @@ export async function adminDashboard(opts?: Opts) {
   if (signal) req = req.abortSignal(signal);
   const { data: users, error } = await req;
   if (error) throw new Error(error.message);
-  const accounts = (users ?? []).map(u => ({ id: u.id, email: u.email, createdAt: u.created_at }));
+  let accessRequest = supabase.from('account_access').select('user_id,paused');
+  if (signal) accessRequest = accessRequest.abortSignal(signal);
+  const { data: accessRows, error: accessError } = await accessRequest;
+  if (accessError) throw new Error(accessError.message);
+  const pausedIds = new Set((accessRows ?? []).filter(row => row.paused).map(row => row.user_id));
+  const accounts = (users ?? []).map(u => ({ id: u.id, email: u.email, createdAt: u.created_at, paused: pausedIds.has(u.id) }));
   const activity: { id: string; user_id: string; added_at: string }[] = [];
   for (let start = 0; ; start += 1000) {
     let q = supabase.from('lead_activity').select('id,user_id,added_at').order('added_at', { ascending: false }).order('id').range(start, start + 999);
@@ -56,6 +61,14 @@ export async function createAccount({ data }: { data: { email: string; password:
   const v = z.object({ email: z.string().email(), password: z.string().min(6) }).parse(data);
   await requireAdmin();
   const { error } = await supabase.rpc('admin_create_account', { _email: v.email, _password: v.password });
+  if (error) throw new Error(error.message);
+  return { ok: true };
+}
+
+export async function setAccountPaused({ data }: { data: { userId: string; paused: boolean } }) {
+  const v = z.object({ userId: z.string().uuid(), paused: z.boolean() }).parse(data);
+  await requireAdmin();
+  const { error } = await supabase.rpc('admin_set_account_paused', { _user_id: v.userId, _paused: v.paused });
   if (error) throw new Error(error.message);
   return { ok: true };
 }

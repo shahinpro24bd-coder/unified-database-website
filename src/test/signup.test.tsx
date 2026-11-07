@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
 
 const { signIn, rpc, navigate } = vi.hoisted(() => ({ signIn: vi.fn(), rpc: vi.fn(), navigate: vi.fn() }));
-vi.mock('@tanstack/react-router', () => ({ createFileRoute: () => (o: unknown) => o, useNavigate: () => navigate }));
+vi.mock('@tanstack/react-router', () => ({ createFileRoute: () => (o: object) => ({ ...o, useSearch: () => ({}) }), useNavigate: () => navigate }));
 vi.mock('@/integrations/supabase/client', () => ({ supabase: { rpc, auth: {
   getSession: vi.fn().mockResolvedValue({ data: { session: null } }), signInWithPassword: signIn,
 } } }));
@@ -14,7 +14,10 @@ import { Route } from '@/routes/auth';
 async function login(isAdmin: boolean) {
   navigate.mockClear();
   signIn.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null });
-  rpc.mockResolvedValue({ data: isAdmin, error: null });
+  rpc.mockImplementation((name: string) => {
+    const result = { data: name === 'has_role' ? isAdmin : false, error: null };
+    return name === 'account_is_paused' ? { abortSignal: () => Promise.resolve(result) } : Promise.resolve(result);
+  });
   const C = (Route as unknown as { component: React.ComponentType }).component;
   const { unmount } = render(<C />);
   fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'a@example.com' } });

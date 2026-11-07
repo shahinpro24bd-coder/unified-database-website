@@ -1,4 +1,5 @@
 # Tasks
+- [x] Add secure per-account pause/resume, automatic device logout with requested message, preserved admin view-as access, and end-to-end tests; verified two separate signed-in devices, blocked paused login, admin readback, resumed password login, restrictive database policies and 36 tests. Offline/sleeping devices show the logout on reconnect; admin accounts are protected from pause.
 - [x] Show automatic Bangladesh-day lead additions and tick-based sent-message counts, totals and account breakdown; verified real tick/cross live updates, phone layout, database totals, and 30 tests. Older checked leads count in all-time totals only because their sent dates are unknown.
 - [x] Diagnose intermittent loading; bound stalled reads and auth waits, retry temporary read failures once, preserve cached leads, and verify real admin/profile/workspace readback plus recovery after forced connection stalls; zero downtime cannot be guaranteed.
 - [x] Enhance the existing logo and derive sharp favicon and installation icons; verify small-size readability and browser asset loading.

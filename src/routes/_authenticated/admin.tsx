@@ -2,13 +2,13 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Trash2, Users, Clock, ListChecks, Plus, UserPlus, Archive, ArchiveRestore, RotateCcw, ExternalLink, Eye, Filter } from 'lucide-react';
+import { Trash2, Users, Clock, ListChecks, Plus, UserPlus, Archive, ArchiveRestore, RotateCcw, ExternalLink, Eye, Filter, Pause, Play } from 'lucide-react';
 import { AdminDailyOverview } from '@/components/admin-daily-overview';
 import { LeadStatus } from '@/components/lead-status';
 import { TeamBrand } from '@/components/team-brand';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { adminDashboard, removeAccount, createAccount, updateAccountLead, allLeads } from '@/lib/admin.functions';
+import { adminDashboard, removeAccount, createAccount, updateAccountLead, allLeads, setAccountPaused } from '@/lib/admin.functions';
 import { boundedRequest, recoveryQueryOptions } from '@/lib/request-recovery';
 import { supabase } from '@/integrations/supabase/client';
 import { SHARE_IMAGE, SITE_ORIGIN } from '@/lib/brand';
@@ -33,6 +33,7 @@ function AdminPage() {
   const query = useQuery({ ...recoveryQueryOptions, queryKey: ['admin-dashboard'], queryFn: ({ signal }) => boundedRequest(s => load({ signal: s }), undefined, signal) });
   const deletion = useMutation({ mutationFn: (userId: string) => remove({ data: { userId } }), onSuccess: () => { toast.success('Account removed. Leads preserved.'); qc.invalidateQueries({ queryKey: ['admin-dashboard'] }); }, onError: (e: Error) => toast.error(e.message) });
   const data = query.data;
+  const pauseAccount = useMutation({ mutationFn: (data: { userId: string; paused: boolean }) => setAccountPaused({ data }), onSuccess: (_, v) => { toast.success(v.paused ? 'Account paused. Only admin can use this workspace.' : 'Account resumed. Login is available again.'); qc.invalidateQueries({ queryKey: ['admin-dashboard'] }); }, onError: (e: Error) => toast.error(e.message) });
   useEffect(() => {
     if (!data) return;
     let refreshTimer: ReturnType<typeof setTimeout> | undefined;
@@ -48,6 +49,7 @@ function AdminPage() {
     const channel = supabase.channel(`admin-activity-${crypto.randomUUID()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, refresh)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'lead_activity' }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'account_access' }, refresh)
       .subscribe();
     return () => { if (refreshTimer !== undefined) clearTimeout(refreshTimer); supabase.removeChannel(channel); };
   }, [Boolean(data), qc]);
@@ -65,7 +67,7 @@ function AdminPage() {
         {showAll && <AllLeads accounts={data.accounts} />}
         <CreateAccount onDone={() => qc.invalidateQueries({ queryKey: ['admin-dashboard'] })} />
         <div className="mb-4 flex flex-wrap items-center justify-between gap-4"><h2 className="text-xl font-semibold">Accounts</h2><Input aria-label="Search accounts" className="max-w-sm" placeholder="Search email…" value={search} onChange={e => setSearch(e.target.value)} /></div>
-        <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="border-b text-muted-foreground"><tr><th className="py-3">Account</th><th>Added leads</th><th>Last submission</th><th /></tr></thead><tbody>{data.accounts.filter(u => u.email.toLowerCase().includes(search.toLowerCase())).map(u => { const submissions = data.activity.filter(a => a.user_id === u.id); return <tr key={u.id} className="border-b"><td className="py-4 pr-4"><Button variant="link" className="h-auto p-0" title="Open this account's workspace" onClick={() => openWorkspace(u.id)}>{u.email}</Button></td><td>{submissions.length}</td><td className="whitespace-nowrap pr-4">{submissions[0] ? new Date(submissions[0].added_at).toLocaleString() : '—'}</td><td className="flex justify-end gap-1"><Button title="Filter submission history" aria-label={`Filter history for ${u.email}`} variant="ghost" size="icon" onClick={() => setAccount(account === u.id ? '' : u.id)}><Filter className="size-4" /></Button><Button title="Open this account's workspace" aria-label={`Open ${u.email} workspace`} variant="ghost" size="icon" onClick={() => openWorkspace(u.id)}><Eye className="size-4" /></Button><Button title="Remove account" aria-label={`Remove ${u.email}`} variant="ghost" size="icon" disabled={u.id === data.selfId || deletion.isPending} onClick={() => { if (window.confirm(`Remove ${u.email}? Their leads and history will be preserved.`)) deletion.mutate(u.id); }}><Trash2 className="size-4 text-destructive" /></Button></td></tr>; })}</tbody></table></div>
+        <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="border-b text-muted-foreground"><tr><th className="py-3">Account</th><th>Access</th><th>Added leads</th><th>Last submission</th><th /></tr></thead><tbody>{data.accounts.filter(u => u.email.toLowerCase().includes(search.toLowerCase())).map(u => { const submissions = data.activity.filter(a => a.user_id === u.id); return <tr key={u.id} className="border-b"><td className="py-4 pr-4"><Button variant="link" className="h-auto p-0" title="Open this account's workspace" onClick={() => openWorkspace(u.id)}>{u.email}</Button></td><td><span className={u.paused ? "font-medium text-destructive" : "text-primary"}>{u.paused ? "Paused" : "Active"}</span></td><td>{submissions.length}</td><td className="whitespace-nowrap pr-4">{submissions[0] ? new Date(submissions[0].added_at).toLocaleString() : '—'}</td><td className="flex justify-end gap-1"><Button variant={u.paused ? "outline" : "ghost"} size="icon" title={u.paused ? "Resume account" : "Pause account"} aria-label={`${u.paused ? "Resume" : "Pause"} ${u.email}`} disabled={u.id === data.selfId || pauseAccount.isPending} onClick={() => { if (u.paused || window.confirm(`Pause ${u.email}? Their devices will be signed out and login will be blocked until resumed.`)) pauseAccount.mutate({ userId: u.id, paused: !u.paused }); }}>{u.paused ? <Play className="size-4" /> : <Pause className="size-4" />}</Button><Button title="Filter submission history" aria-label={`Filter history for ${u.email}`} variant="ghost" size="icon" onClick={() => setAccount(account === u.id ? '' : u.id)}><Filter className="size-4" /></Button><Button title="Open this account's workspace" aria-label={`Open ${u.email} workspace`} variant="ghost" size="icon" onClick={() => openWorkspace(u.id)}><Eye className="size-4" /></Button><Button title="Remove account" aria-label={`Remove ${u.email}`} variant="ghost" size="icon" disabled={u.id === data.selfId || deletion.isPending} onClick={() => { if (window.confirm(`Remove ${u.email}? Their leads and history will be preserved.`)) deletion.mutate(u.id); }}><Trash2 className="size-4 text-destructive" /></Button></td></tr>; })}</tbody></table></div>
         <div className="mb-4 mt-10 flex items-center justify-between"><h2 className="flex items-center gap-2 text-xl font-semibold"><Clock className="size-5" /> Submission history</h2>{account && <Button variant="ghost" onClick={() => setAccount('')}>All accounts</Button>}</div>
         <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="border-b text-muted-foreground"><tr><th className="py-3">Account</th><th>Date & time</th><th>Leads</th></tr></thead><tbody>{data.activity.filter(a => !account || a.user_id === account).map(a => <tr key={a.id} className="border-b"><td className="py-3 pr-4">{data.accounts.find(u => u.id === a.user_id)?.email ?? 'Removed account'}</td><td className="whitespace-nowrap">{new Date(a.added_at).toLocaleString()}</td><td>1</td></tr>)}</tbody></table>{data.activity.length === 0 && <p className="py-8 text-muted-foreground">No new submissions yet.</p>}</div>
       </>}

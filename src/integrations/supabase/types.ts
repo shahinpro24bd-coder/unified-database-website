@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_access: {
+        Row: {
+          changed_at: string
+          paused: boolean
+          user_id: string
+        }
+        Insert: {
+          changed_at?: string
+          paused?: boolean
+          user_id: string
+        }
+        Update: {
+          changed_at?: string
+          paused?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
       lead_activity: {
         Row: {
           added_at: string
@@ -121,6 +139,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      account_is_paused: { Args: { _user_id: string }; Returns: boolean }
       admin_create_account: {
         Args: { _email: string; _password: string }
         Returns: string
@@ -144,6 +163,10 @@ export type Database = {
         }[]
       }
       admin_remove_account: { Args: { _user_id: string }; Returns: undefined }
+      admin_set_account_paused: {
+        Args: { _paused: boolean; _user_id: string }
+        Returns: undefined
+      }
       canonical_facebook_link: { Args: { input_link: string }; Returns: string }
       collected_leads: {
         Args: never
