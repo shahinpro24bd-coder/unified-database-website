@@ -36,6 +36,13 @@
       "when": 1794043206476,
       "tag": "0004_admin_daily_lead_message_counts",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794043550427,
+      "tag": "0005_pause_accounts_securely",
+      "breakpoints": true
     }
   ]
 }
