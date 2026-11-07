@@ -451,7 +451,7 @@ function LeadsPage() {
       {actingAsOther && (
         <div className="mx-auto max-w-7xl px-5 pt-6 sm:px-8">
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/10 px-4 py-3">
-            <p className="flex items-center gap-2 text-sm font-medium"><Eye className="size-4 shrink-0" /> Admin view: {targetEmail ?? "onno account"} er workspace dekhano hocche.</p>
+            <div className="flex min-w-0 items-center gap-3"><Eye className="size-4 shrink-0 text-primary" /><div className="min-w-0"><p className="text-xs font-medium text-muted-foreground">Admin view</p><p className="break-all text-sm font-semibold">{targetEmail ?? "Loading account…"}</p></div></div>
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={() => navigate({ to: "/leads", search: {} })}><RotateCcw className="mr-2 size-4" /> Nijer workspace</Button>
               <Button size="sm" asChild><Link to="/admin"><ArrowLeft className="mr-2 size-4" /> Admin e firun</Link></Button>
@@ -462,7 +462,7 @@ function LeadsPage() {
       <div className="mx-auto max-w-7xl space-y-8 px-5 py-8 sm:px-8 sm:py-10">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground"><LayoutDashboard className="size-3.5" /> {actingAsOther ? `VIEWING AS ${targetEmail ?? "this account"}` : "YOUR WORKSPACE"}</p>
+            <p className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground"><LayoutDashboard className="size-3.5" /> {actingAsOther ? "ACCOUNT WORKSPACE" : "YOUR WORKSPACE"}</p>
             <h1 className="text-3xl font-semibold sm:text-4xl">Lead collection<span className="text-primary">.</span></h1>
           </div>
           <Button variant="outline" size="sm" onClick={() => { refetchLeads(); qc.invalidateQueries({ queryKey: ["previous-version-leads"] }); }}>
