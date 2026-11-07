@@ -24,7 +24,7 @@ export function AccountAccessMonitor({ children }: { children: ReactNode }) {
       await qc.cancelQueries();
       qc.clear();
       try { await boundedRequest(() => signOutThisDevice(), SESSION_TIMEOUT_MS); } catch { /* Data access is already blocked by database rules. */ }
-      if (!disposed) await router.navigate({ to: '/auth', search: { paused: true }, replace: true });
+      if (!disposed) { await router.navigate({ to: '/auth', search: { paused: true }, replace: true }); setBlocked(false); }
     };
     const check = async () => {
       if (busy || disposed || kicked) return;
@@ -37,7 +37,7 @@ export function AccountAccessMonitor({ children }: { children: ReactNode }) {
           userId = id;
           if (id) channel = supabase.channel(`account-access-${crypto.randomUUID()}`)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'account_access', filter: `user_id=eq.${id}` }, payload => {
-              if ('paused' in payload.new && payload.new.paused === true) void kick();
+              if ('paused' in payload.new && payload.new['paused'] === true) void kick();
             }).subscribe();
         }
         if (id) await assertAccountActive(id);

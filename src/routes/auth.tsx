@@ -15,7 +15,7 @@ import { boundedRequest, SESSION_TIMEOUT_MS } from "@/lib/request-recovery";
 import { SHARE_IMAGE, SITE_ORIGIN } from "@/lib/brand";
 
 export const Route = createFileRoute("/auth")({
-  validateSearch: (search: Record<string, unknown>) => ({ paused: search.paused === true || search.paused === 'true' }),
+  validateSearch: (search: Record<string, unknown>): { paused?: boolean } => search['paused'] === true || search['paused'] === 'true' ? { paused: true } : {},
   head: () => ({
     meta: [
       { title: "Sign in — TEAM SHAHIN" },

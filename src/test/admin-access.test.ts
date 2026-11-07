@@ -9,11 +9,21 @@ vi.mock('@/integrations/supabase/client', () => ({
     from: (...a: unknown[]) => from(...a),
   },
 }));
-import { adminDashboard, removeAccount, allLeads, accountEmail, adminDailyCounts } from '@/lib/admin.functions';
+import { adminDashboard, removeAccount, allLeads, accountEmail, adminDailyCounts, setAccountPaused } from '@/lib/admin.functions';
 
 const OTHER = '11111111-1111-4111-8111-111111111111';
 describe('Admin account permissions', () => {
   beforeEach(() => { rpc.mockReset(); from.mockReset(); });
+  it('denies pause changes from a non-admin', async () => {
+    rpc.mockResolvedValue({ data: false, error: null });
+    await expect(setAccountPaused({ data: { userId: OTHER, paused: true } })).rejects.toThrow('Admin access required');
+    expect(rpc).not.toHaveBeenCalledWith('admin_set_account_paused', expect.anything());
+  });
+  it.each([true, false])('allows an admin to explicitly set pause to %s', async paused => {
+    rpc.mockResolvedValueOnce({ data: true, error: null }).mockResolvedValueOnce({ data: null, error: null });
+    await setAccountPaused({ data: { userId: OTHER, paused } });
+    expect(rpc).toHaveBeenCalledWith('admin_set_account_paused', { _user_id: OTHER, _paused: paused });
+  });
   it('denies daily account activity to a non-admin', async () => {
     rpc.mockResolvedValue({ data: false, error: null });
     await expect(adminDailyCounts()).rejects.toThrow('Admin access required');
