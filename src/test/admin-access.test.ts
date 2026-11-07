@@ -9,11 +9,22 @@ vi.mock('@/integrations/supabase/client', () => ({
     from: (...a: unknown[]) => from(...a),
   },
 }));
-import { adminDashboard, removeAccount, allLeads, accountEmail } from '@/lib/admin.functions';
+import { adminDashboard, removeAccount, allLeads, accountEmail, adminDailyCounts } from '@/lib/admin.functions';
 
 const OTHER = '11111111-1111-4111-8111-111111111111';
 describe('Admin account permissions', () => {
-  beforeEach(() => rpc.mockReset());
+  beforeEach(() => { rpc.mockReset(); from.mockReset(); });
+  it('denies daily account activity to a non-admin', async () => {
+    rpc.mockResolvedValue({ data: false, error: null });
+    await expect(adminDailyCounts()).rejects.toThrow('Admin access required');
+    expect(rpc).not.toHaveBeenCalledWith('admin_daily_lead_counts');
+  });
+  it('reads daily additions and tick-based sent counts for an admin', async () => {
+    const rows = [{ user_id: OTHER, leads_today: 4, messages_today: 2, messages_total: 8, report_day: '2026-11-07' }];
+    rpc.mockResolvedValueOnce({ data: true, error: null }).mockResolvedValueOnce({ data: rows, error: null });
+    await expect(adminDailyCounts()).resolves.toEqual(rows);
+    expect(rpc).toHaveBeenCalledWith('admin_daily_lead_counts');
+  });
   it('denies dashboard data to a non-admin account', async () => {
     rpc.mockResolvedValue({ data: false, error: null });
     await expect(adminDashboard()).rejects.toThrow('Admin access required');
@@ -57,7 +68,7 @@ describe('Admin account permissions', () => {
     });
     const rows = await allLeads();
     expect(rows).toHaveLength(1001);
-    expect(rows[1000]!.id).toBe('last');
+    expect(rows[1000]?.id).toBe('last');
     expect(from).toHaveBeenCalledTimes(2);
   });
 });

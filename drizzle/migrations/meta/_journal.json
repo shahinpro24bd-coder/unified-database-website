@@ -29,6 +29,13 @@
       "when": 1792996904424,
       "tag": "0003_realtime_leads_publication",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794043206476,
+      "tag": "0004_admin_daily_lead_message_counts",
+      "breakpoints": true
     }
   ]
 }

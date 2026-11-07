@@ -64,6 +64,7 @@ export type Database = {
           deleted_at: string | null
           facebook_link: string
           id: string
+          message_sent_at: string | null
           phone: string | null
           serial: number
           user_id: string
@@ -76,6 +77,7 @@ export type Database = {
           deleted_at?: string | null
           facebook_link: string
           id?: string
+          message_sent_at?: string | null
           phone?: string | null
           serial: number
           user_id: string
@@ -88,6 +90,7 @@ export type Database = {
           deleted_at?: string | null
           facebook_link?: string
           id?: string
+          message_sent_at?: string | null
           phone?: string | null
           serial?: number
           user_id?: string
@@ -121,6 +124,16 @@ export type Database = {
       admin_create_account: {
         Args: { _email: string; _password: string }
         Returns: string
+      }
+      admin_daily_lead_counts: {
+        Args: never
+        Returns: {
+          leads_today: number
+          messages_today: number
+          messages_total: number
+          report_day: string
+          user_id: string
+        }[]
       }
       admin_list_accounts: {
         Args: never

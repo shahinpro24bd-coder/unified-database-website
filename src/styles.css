@@ -223,6 +223,10 @@
 .admin-stats { background: var(--card); border-block: 1px solid var(--border); }
 .admin-stats > div { padding: 0 24px; }
 .admin-stats > div:first-child { border-right: 1px solid var(--border); }
+.daily-metrics { background: var(--card); }
+.daily-metrics > div { border-right: 1px solid var(--border); }
+.daily-metrics > div:nth-child(2n) { border-right: 0; }
+@media (min-width: 1024px) { .daily-metrics > div:nth-child(2) { border-right: 1px solid var(--border); } }
 .admin-page form, .admin-page section { border-radius: 0; border-inline: 0; background: var(--card); border-top: 2px solid var(--workspace-ink); }
 .admin-page table thead { background: var(--muted); }
 .admin-page table th, .admin-page table td { padding: 14px 12px; }

@@ -42,6 +42,16 @@ export async function removeAccount({ data }: { data: { userId: string } }) {
   return { ok: true };
 }
 
+export async function adminDailyCounts(opts?: Opts) {
+  const signal = opts ? opts.signal : undefined;
+  await requireAdmin();
+  let req = supabase.rpc('admin_daily_lead_counts');
+  if (signal) req = req.abortSignal(signal);
+  const { data, error } = await req;
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
 export async function createAccount({ data }: { data: { email: string; password: string } }) {
   const v = z.object({ email: z.string().email(), password: z.string().min(6) }).parse(data);
   await requireAdmin();

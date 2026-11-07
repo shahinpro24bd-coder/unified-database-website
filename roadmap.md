@@ -1,4 +1,5 @@
 # Tasks
+- [x] Show automatic Bangladesh-day lead additions and tick-based sent-message counts, totals and account breakdown; verified real tick/cross live updates, phone layout, database totals, and 30 tests. Older checked leads count in all-time totals only because their sent dates are unknown.
 - [x] Diagnose intermittent loading; bound stalled reads and auth waits, retry temporary read failures once, preserve cached leads, and verify real admin/profile/workspace readback plus recovery after forced connection stalls; zero downtime cannot be guaranteed.
 - [x] Enhance the existing logo and derive sharp favicon and installation icons; verify small-size readability and browser asset loading.
 - [x] Keep Active leads selected by default and provide explicit tick/cross lead controls; verify status readback.
