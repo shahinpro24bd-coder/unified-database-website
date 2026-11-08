@@ -21,12 +21,12 @@ export async function adminDashboard(opts?: Opts) {
   if (signal) req = req.abortSignal(signal);
   const { data: users, error } = await req;
   if (error) throw new Error(error.message);
-  let accessRequest = supabase.from('account_access').select('user_id,paused');
+   let accessRequest = supabase.from('account_access').select('user_id,paused,removed_at,best_hunter');
   if (signal) accessRequest = accessRequest.abortSignal(signal);
   const { data: accessRows, error: accessError } = await accessRequest;
   if (accessError) throw new Error(accessError.message);
-  const pausedIds = new Set((accessRows ?? []).filter(row => row.paused).map(row => row.user_id));
-  const accounts = (users ?? []).map(u => ({ id: u.id, email: u.email, createdAt: u.created_at, paused: pausedIds.has(u.id) }));
+   const access = new Map((accessRows ?? []).map(row => [row.user_id, row]));
+   const accounts = (users ?? []).map(u => ({ id: u.id, email: u.email, createdAt: u.created_at, paused: access.get(u.id)?.paused ?? false, removedAt: access.get(u.id)?.removed_at ?? null, bestHunter: access.get(u.id)?.best_hunter ?? false }));
   const activity: { id: string; user_id: string; added_at: string }[] = [];
   for (let start = 0; ; start += 1000) {
     let q = supabase.from('lead_activity').select('id,user_id,added_at').order('added_at', { ascending: false }).order('id').range(start, start + 999);
@@ -69,6 +69,14 @@ export async function setAccountPaused({ data }: { data: { userId: string; pause
   const v = z.object({ userId: z.string().uuid(), paused: z.boolean() }).parse(data);
   await requireAdmin();
   const { error } = await supabase.rpc('admin_set_account_paused', { _user_id: v.userId, _paused: v.paused });
+  if (error) throw new Error(error.message);
+  return { ok: true };
+}
+
+export async function setBestHunter({ data }: { data: { userId: string; bestHunter: boolean } }) {
+  const v = z.object({ userId: z.string().uuid(), bestHunter: z.boolean() }).parse(data);
+  await requireAdmin();
+  const { error } = await supabase.rpc('admin_set_best_hunter', { _user_id: v.userId, _best_hunter: v.bestHunter });
   if (error) throw new Error(error.message);
   return { ok: true };
 }

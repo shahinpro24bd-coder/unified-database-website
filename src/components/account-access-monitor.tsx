@@ -37,7 +37,7 @@ export function AccountAccessMonitor({ children }: { children: ReactNode }) {
           userId = id;
           if (id) channel = supabase.channel(`account-access-${crypto.randomUUID()}`)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'account_access', filter: `user_id=eq.${id}` }, payload => {
-              if ('paused' in payload.new && payload.new['paused'] === true) void kick();
+              if (('paused' in payload.new && payload.new['paused'] === true) || ('removed_at' in payload.new && payload.new['removed_at'])) void kick();
             }).subscribe();
         }
         if (id) await assertAccountActive(id);
