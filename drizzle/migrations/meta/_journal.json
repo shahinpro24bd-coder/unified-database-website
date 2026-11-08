@@ -43,6 +43,13 @@
       "when": 1794043550427,
       "tag": "0005_pause_accounts_securely",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794149807976,
+      "tag": "0006_preserve_removed_accounts_best_hunter",
+      "breakpoints": true
     }
   ]
 }
