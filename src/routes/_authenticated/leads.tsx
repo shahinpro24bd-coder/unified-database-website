@@ -160,7 +160,7 @@ function LeadsPage() {
     ...recoveryQueryOptions,
     queryKey: ['account-tag', targetId],
     queryFn: async ({ signal }) => {
-      const { data, error } = await boundedRequest(s => supabase.from('account_access').select('best_hunter').eq('user_id', targetId).maybeSingle().abortSignal(s), undefined, signal);
+      const { data, error } = await boundedRequest(s => supabase.from('account_access').select('best_hunter').eq('user_id', targetId).abortSignal(s).maybeSingle(), undefined, signal);
       if (error) throw error;
       return data?.best_hunter ?? false;
     },
