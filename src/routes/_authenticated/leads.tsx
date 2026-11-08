@@ -28,6 +28,7 @@ import {
 
 } from "lucide-react";
 import { TeamBrand } from "@/components/team-brand";
+import { BestHunterTag } from "@/components/best-hunter-tag";
 import { DEFAULT_LEAD_VIEW, LeadStatus } from "@/components/lead-status";
 import { signOutThisDevice } from "@/lib/account-session";
 import { boundedRequest, recoveryQueryOptions } from "@/lib/request-recovery";
@@ -155,6 +156,20 @@ function LeadsPage() {
     enabled: actingAsOther,
     queryFn: async ({ signal }) => boundedRequest(s => accountEmail({ data: { userId: targetId }, signal: s }), undefined, signal),
   });
+  const { data: bestHunter = false } = useQuery({
+    ...recoveryQueryOptions,
+    queryKey: ['account-tag', targetId],
+    queryFn: async ({ signal }) => {
+      const { data, error } = await boundedRequest(s => supabase.from('account_access').select('best_hunter').eq('user_id', targetId).maybeSingle().abortSignal(s), undefined, signal);
+      if (error) throw error;
+      return data?.best_hunter ?? false;
+    },
+  });
+  useEffect(() => {
+    const channel = supabase.channel(`account-tag-${targetId}-${crypto.randomUUID()}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'account_access', filter: `user_id=eq.${targetId}` }, () => qc.invalidateQueries({ queryKey: ['account-tag', targetId] })).subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [targetId, qc]);
   const { data: collected = [], isLoading: collectedLoading, isError: previousError, refetch: refetchPrevious } = useQuery({
     ...recoveryQueryOptions,
     queryKey: ["previous-version-leads"],
@@ -464,6 +479,7 @@ function LeadsPage() {
           <div>
             <p className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground"><LayoutDashboard className="size-3.5" /> {actingAsOther ? "ACCOUNT WORKSPACE" : "YOUR WORKSPACE"}</p>
             <h1 className="text-3xl font-semibold sm:text-4xl">Lead collection<span className="text-primary">.</span></h1>
+            <div className="mt-2 flex flex-wrap items-center gap-3"><p className="break-all text-sm text-muted-foreground">{actingAsOther ? targetEmail : user.email}</p>{bestHunter && <BestHunterTag />}</div>
           </div>
           <Button variant="outline" size="sm" onClick={() => { refetchLeads(); qc.invalidateQueries({ queryKey: ["previous-version-leads"] }); }}>
             <RotateCcw className="mr-2 size-4" /> Refresh
