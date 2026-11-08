@@ -9,11 +9,21 @@ vi.mock('@/integrations/supabase/client', () => ({
     from: (...a: unknown[]) => from(...a),
   },
 }));
-import { adminDashboard, removeAccount, allLeads, accountEmail, adminDailyCounts, setAccountPaused } from '@/lib/admin.functions';
+import { adminDashboard, removeAccount, allLeads, accountEmail, adminDailyCounts, setAccountPaused, setBestHunter } from '@/lib/admin.functions';
 
 const OTHER = '11111111-1111-4111-8111-111111111111';
 describe('Admin account permissions', () => {
   beforeEach(() => { rpc.mockReset(); from.mockReset(); });
+  it('denies Best Hunter assignments to non-admins', async () => {
+    rpc.mockResolvedValue({ data: false, error: null });
+    await expect(setBestHunter({ data: { userId: OTHER, bestHunter: true } })).rejects.toThrow('Admin access required');
+    expect(rpc).not.toHaveBeenCalledWith('admin_set_best_hunter', expect.anything());
+  });
+  it.each([true, false])('allows explicit Best Hunter assignment %s', async bestHunter => {
+    rpc.mockResolvedValueOnce({ data: true, error: null }).mockResolvedValueOnce({ data: null, error: null });
+    await setBestHunter({ data: { userId: OTHER, bestHunter } });
+    expect(rpc).toHaveBeenCalledWith('admin_set_best_hunter', { _user_id: OTHER, _best_hunter: bestHunter });
+  });
   it('denies pause changes from a non-admin', async () => {
     rpc.mockResolvedValue({ data: false, error: null });
     await expect(setAccountPaused({ data: { userId: OTHER, paused: true } })).rejects.toThrow('Admin access required');

@@ -16,18 +16,24 @@ export type Database = {
     Tables: {
       account_access: {
         Row: {
+          best_hunter: boolean
           changed_at: string
           paused: boolean
+          removed_at: string | null
           user_id: string
         }
         Insert: {
+          best_hunter?: boolean
           changed_at?: string
           paused?: boolean
+          removed_at?: string | null
           user_id: string
         }
         Update: {
+          best_hunter?: boolean
           changed_at?: string
           paused?: boolean
+          removed_at?: string | null
           user_id?: string
         }
         Relationships: []
@@ -165,6 +171,10 @@ export type Database = {
       admin_remove_account: { Args: { _user_id: string }; Returns: undefined }
       admin_set_account_paused: {
         Args: { _paused: boolean; _user_id: string }
+        Returns: undefined
+      }
+      admin_set_best_hunter: {
+        Args: { _best_hunter: boolean; _user_id: string }
         Returns: undefined
       }
       canonical_facebook_link: { Args: { input_link: string }; Returns: string }
