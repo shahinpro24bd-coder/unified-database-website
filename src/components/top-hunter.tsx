@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 
-export function TopHunterTag({ rank = 1 }: { rank?: number }) {
+export function TopHunterTag({ rank = 1 }: { rank?: number | undefined }) {
   return <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-sm bg-primary px-2 py-1 text-xs font-semibold text-primary-foreground"><Crown className="size-3.5" /> No.{rank} Client Hunter</span>;
 }
 
