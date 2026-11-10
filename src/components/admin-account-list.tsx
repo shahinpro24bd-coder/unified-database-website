@@ -1,6 +1,7 @@
 import { Eye, Filter, Pause, Play, Trash2, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BestHunterTag } from '@/components/best-hunter-tag';
+import { TopHunterTag, useTopHunterId } from '@/components/top-hunter';
 import type { DirectoryAccount } from '@/lib/account-directory';
 
 export function AdminAccountList({ accounts, activity, selfId, pending, onOpen, onHistory, onPause, onRemove, onTag }: {
@@ -14,10 +15,11 @@ export function AdminAccountList({ accounts, activity, selfId, pending, onOpen, 
   onRemove: (id: string) => void;
   onTag: (id: string, bestHunter: boolean) => void;
 }) {
+  const { data: topHunterId } = useTopHunterId();
   return <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="border-b text-muted-foreground"><tr><th className="py-3">Account</th><th>Access</th><th className="whitespace-nowrap px-3">Added leads</th><th className="whitespace-nowrap">Last submission</th><th /></tr></thead><tbody>{accounts.map(a => {
     const submissions = activity.filter(s => s.user_id === a.id);
     return <tr key={a.id} className="border-b">
-      <td className="py-4 pr-4"><div className="flex items-center gap-2"><Button variant="link" className="h-auto whitespace-nowrap p-0 font-semibold" onClick={() => onOpen(a.id)}>{a.email.split('@')[0]}</Button>{a.bestHunter && <BestHunterTag />}</div></td>
+      <td className="py-4 pr-4"><div className="flex items-center gap-2"><Button variant="link" className="h-auto whitespace-nowrap p-0 font-semibold" onClick={() => onOpen(a.id)}>{a.email.split('@')[0]}</Button>{topHunterId === a.id && <TopHunterTag />}{a.bestHunter && <BestHunterTag />}</div></td>
       <td className={a.removedAt || a.paused ? 'text-destructive' : 'text-primary'}>{a.removedAt ? 'Removed' : a.paused ? 'Paused' : 'Active'}</td>
       <td className="px-3 tabular-nums">{submissions.length}</td><td className="whitespace-nowrap pr-4">{submissions[0] ? new Date(submissions[0].added_at).toLocaleString() : '—'}</td>
       <td><div className="flex justify-end gap-1">
