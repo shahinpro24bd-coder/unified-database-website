@@ -5,18 +5,19 @@ import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 
-export function TopHunterTag() {
-  return <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-sm bg-primary px-2 py-1 text-xs font-semibold text-primary-foreground"><Crown className="size-3.5" /> No.1 Client Hunter</span>;
+export function TopHunterTag({ rank = 1 }: { rank?: number }) {
+  return <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-sm bg-primary px-2 py-1 text-xs font-semibold text-primary-foreground"><Crown className="size-3.5" /> No.{rank} Client Hunter</span>;
 }
 
-export function useTopHunterId() {
+// Map of user id -> rank (1-4) for the best four hunters.
+export function useTopHunters() {
   return useQuery({
-    queryKey: ['top-hunter'],
+    queryKey: ['top-hunters'],
     refetchInterval: 60_000,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('top_hunter_id');
+      const { data, error } = await supabase.rpc('top_hunters');
       if (error) throw error;
-      return (data as string | null) ?? null;
+      return Object.fromEntries((data ?? []).map(r => [r.user_id, r.rank])) as Record<string, number>;
     },
   });
 }
