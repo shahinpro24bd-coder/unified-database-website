@@ -16,5 +16,7 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  // Older phone browsers fail on the default modern-only output and get stuck loading.
+  vite: { build: { target: ["es2019", "chrome80", "safari13", "firefox78", "edge88"] } },
   ...(onVercel ? { nitro: { preset: "vercel" } } : {}),
 });
