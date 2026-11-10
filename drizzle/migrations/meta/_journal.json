@@ -50,6 +50,13 @@
       "when": 1794149807976,
       "tag": "0006_preserve_removed_accounts_best_hunter",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794303747856,
+      "tag": "0007_top_hunter",
+      "breakpoints": true
     }
   ]
 }
