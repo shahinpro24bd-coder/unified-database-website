@@ -220,6 +220,13 @@ export type Database = {
       }
       purge_old_trash: { Args: never; Returns: undefined }
       top_hunter_id: { Args: never; Returns: string }
+      top_hunters: {
+        Args: never
+        Returns: {
+          rank: number
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "user"
