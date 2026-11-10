@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { TeamBrand } from "@/components/team-brand";
 import { BestHunterTag } from "@/components/best-hunter-tag";
+import { TopHunterCongrats, TopHunterTag, useTopHunterId } from "@/components/top-hunter";
 import { DEFAULT_LEAD_VIEW, LeadStatus } from "@/components/lead-status";
 import { signOutThisDevice } from "@/lib/account-session";
 import { boundedRequest, recoveryQueryOptions } from "@/lib/request-recovery";
@@ -156,6 +157,7 @@ function LeadsPage() {
     enabled: actingAsOther,
     queryFn: async ({ signal }) => boundedRequest(s => accountEmail({ data: { userId: targetId }, signal: s }), undefined, signal),
   });
+  const { data: topHunterId } = useTopHunterId();
   const { data: bestHunter = false } = useQuery({
     ...recoveryQueryOptions,
     queryKey: ['account-tag', targetId],
@@ -479,7 +481,8 @@ function LeadsPage() {
           <div>
             <p className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground"><LayoutDashboard className="size-3.5" /> {actingAsOther ? "ACCOUNT WORKSPACE" : "YOUR WORKSPACE"}</p>
             <h1 className="text-3xl font-semibold sm:text-4xl">Lead collection<span className="text-primary">.</span></h1>
-            <div className="mt-2 flex flex-wrap items-center gap-3"><p className="break-all text-sm text-muted-foreground">{actingAsOther ? targetEmail : user.email}</p>{bestHunter && <BestHunterTag />}</div>
+            <div className="mt-2 flex flex-wrap items-center gap-3"><p className="break-all text-sm text-muted-foreground">{actingAsOther ? targetEmail : user.email}</p>{topHunterId === targetId && <TopHunterTag />}{bestHunter && <BestHunterTag />}</div>
+            {!actingAsOther && <TopHunterCongrats userId={user.id} isTop={topHunterId === user.id} />}
           </div>
           <Button variant="outline" size="sm" onClick={() => { refetchLeads(); qc.invalidateQueries({ queryKey: ["previous-version-leads"] }); }}>
             <RotateCcw className="mr-2 size-4" /> Refresh
