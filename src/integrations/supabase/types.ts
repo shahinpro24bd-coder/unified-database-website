@@ -122,6 +122,21 @@ export type Database = {
         }
         Relationships: []
       }
+      top_hunter_ack: {
+        Row: {
+          acknowledged_at: string
+          user_id: string
+        }
+        Insert: {
+          acknowledged_at?: string
+          user_id: string
+        }
+        Update: {
+          acknowledged_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -204,6 +219,7 @@ export type Database = {
         }[]
       }
       purge_old_trash: { Args: never; Returns: undefined }
+      top_hunter_id: { Args: never; Returns: string }
     }
     Enums: {
       app_role: "admin" | "user"
