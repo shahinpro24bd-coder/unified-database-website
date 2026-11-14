@@ -3,6 +3,17 @@ import { getAllCountries } from 'countries-and-timezones';
 
 const countries = getAllCountries();
 
+export function singleCountryTime(country: { timezones: string[] }, now: Date) {
+  const firstZone = country.timezones[0];
+  if (!firstZone) return null;
+  const first = zoneTime(firstZone, now);
+  if (country.timezones.some(zone => {
+    const time = zoneTime(zone, now);
+    return time.time !== first.time || time.period !== first.period;
+  })) return null;
+  return { zone: firstZone, ...first };
+}
+
 export function phoneCountry(phone: string) {
   const input = phone.trim().replace(/^00/, '+');
   // Bare international numbers are accepted; national numbers beginning with

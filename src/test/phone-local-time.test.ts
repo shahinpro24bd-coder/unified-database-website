@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { phoneCountry, zoneTime } from '@/lib/phone-local-time';
+import { phoneCountry, singleCountryTime, zoneTime } from '@/lib/phone-local-time';
 
 it('detects Bangladesh from international phone numbers, including spaces and 00 prefixes', () => {
   for (const phone of ['+880 1710-131161', '008801712345678', '8801712345678']) {
@@ -23,9 +23,13 @@ it('uses daylight-saving-aware time zone offsets', () => {
   expect(zoneTime('Europe/London', new Date('2026-11-14T11:00:00Z')).time).toBe('11:00 AM');
 });
 
-it('preserves multiple time zones instead of claiming one exact US time', () => {
+it('returns unknown instead of selecting an arbitrary US time', () => {
   const country = phoneCountry('+14155552671');
   expect(country?.id).toBe('US');
-  const times = country?.timezones.map(zone => zoneTime(zone, new Date('2026-11-14T11:00:00Z')).time);
-  expect(new Set(times).size).toBeGreaterThan(1);
+  expect(country && singleCountryTime(country, new Date('2026-11-14T11:00:00Z'))).toBeNull();
+});
+
+it('returns one time when all country zones agree', () => {
+  expect(singleCountryTime({ timezones: ['Asia/Dhaka'] }, new Date('2026-11-14T11:00:00Z'))).toEqual({ zone: 'Asia/Dhaka', time: '05:00 PM', period: 'Day' });
+  expect(singleCountryTime({ timezones: [] }, new Date('2026-11-14T11:00:00Z'))).toBeNull();
 });
