@@ -7,6 +7,7 @@ import { AdminAccountList } from '@/components/admin-account-list';
 import { directoryAccounts } from '@/lib/account-directory';
 import { AdminDailyOverview } from '@/components/admin-daily-overview';
 import { LeadStatus } from '@/components/lead-status';
+import { PhoneLocalTime, useLocalTimeClock } from '@/components/phone-local-time';
 import { TeamBrand } from '@/components/team-brand';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -92,6 +93,7 @@ function CreateAccount({ onDone }: { onDone: () => void }) {
 }
 
 function AllLeads({ accounts }: { accounts: { id: string; email: string }[] }) {
+  const localTimeNow = useLocalTimeClock();
   const update = updateAccountLead;
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
@@ -117,7 +119,7 @@ function AllLeads({ accounts }: { accounts: { id: string; email: string }[] }) {
       <td className="py-2 pr-3">{l.serial}</td>
       <td className="whitespace-nowrap pr-3 text-muted-foreground">{accounts.find(a => a.id === l.user_id)?.email.split("@")[0] ?? 'Removed account'}</td>
       <td className="max-w-xs truncate pr-3"><a className="inline-flex items-center gap-1 text-primary underline" href={l.facebook_link} target="_blank" rel="noreferrer">{l.facebook_link}<ExternalLink className="size-3" /></a></td>
-      <td className="whitespace-nowrap pr-3">{l.phone ?? '—'}</td>
+      <td className="pr-3"><div className="flex flex-wrap items-center gap-x-3 gap-y-1"><span className="whitespace-nowrap">{l.phone ?? '—'}</span>{l.phone && <PhoneLocalTime phone={l.phone} now={localTimeNow} />}</div></td>
       <td className="whitespace-nowrap pr-3 text-xs">{l.deleted_at ? 'Trash' : l.archived ? 'Archived' : l.verified ? 'Message sent' : 'Not sent'}</td>
       <td className="whitespace-nowrap">
         <span className="inline-flex align-middle"><LeadStatus verified={l.verified} pending={m.isPending} onChange={verified => m.mutate({ id: l.id, action: verified ? 'verify' : 'unverify' })} /></span>

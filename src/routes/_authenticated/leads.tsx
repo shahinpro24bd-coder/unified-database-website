@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { TeamBrand } from "@/components/team-brand";
 import { BestHunterTag } from "@/components/best-hunter-tag";
+import { PhoneLocalTime, useLocalTimeClock } from "@/components/phone-local-time";
 import { TopHunterCongrats, TopHunterTag, useTopHunters } from "@/components/top-hunter";
 import { DEFAULT_LEAD_VIEW, LeadStatus } from "@/components/lead-status";
 import { signOutThisDevice } from "@/lib/account-session";
@@ -94,6 +95,7 @@ export const Route = createFileRoute("/_authenticated/leads")({
 });
 
 function LeadsPage() {
+  const localTimeNow = useLocalTimeClock();
   const { user } = Route.useRouteContext();
   const navigate = useNavigate();
   const { as: actingAs } = Route.useSearch();
@@ -800,6 +802,7 @@ function LeadsPage() {
                       </TableCell>
                       <TableCell>
                         {lead.phone ? (
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                           <a
                             href={`https://wa.me/${lead.phone.replace(/\D/g, "")}`}
                             target="_blank"
@@ -809,6 +812,8 @@ function LeadsPage() {
                             <MessageCircle className="size-3" />
                             {lead.phone}
                           </a>
+                          <PhoneLocalTime phone={lead.phone} now={localTimeNow} />
+                          </div>
                         ) : (
                           <span className="text-xs text-muted-foreground">No number</span>
                         )}
