@@ -38,6 +38,33 @@ export type Database = {
         }
         Relationships: []
       }
+      badge_history: {
+        Row: {
+          badge: string
+          ended_at: string | null
+          id: string
+          rank: number | null
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          badge: string
+          ended_at?: string | null
+          id?: string
+          rank?: number | null
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          badge?: string
+          ended_at?: string | null
+          id?: string
+          rank?: number | null
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       lead_activity: {
         Row: {
           added_at: string
@@ -161,6 +188,14 @@ export type Database = {
     }
     Functions: {
       account_is_paused: { Args: { _user_id: string }; Returns: boolean }
+      account_week_history: {
+        Args: { _user_id: string }
+        Returns: {
+          day: string
+          leads_added: number
+          messages_sent: number
+        }[]
+      }
       admin_create_account: {
         Args: { _email: string; _password: string }
         Returns: string
@@ -219,6 +254,7 @@ export type Database = {
         }[]
       }
       purge_old_trash: { Args: never; Returns: undefined }
+      sync_hunter_badges: { Args: never; Returns: undefined }
       top_hunter_id: { Args: never; Returns: string }
       top_hunters: {
         Args: never

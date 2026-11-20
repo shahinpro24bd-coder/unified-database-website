@@ -28,6 +28,7 @@ import {
 
 } from "lucide-react";
 import { TeamBrand } from "@/components/team-brand";
+import { AccountHistoryButton } from "@/components/account-history";
 import { BestHunterTag } from "@/components/best-hunter-tag";
 import { PhoneLocalTime, useLocalTimeClock } from "@/components/phone-local-time";
 import { TopHunterCongrats, TopHunterTag, useTopHunters } from "@/components/top-hunter";
@@ -483,7 +484,7 @@ function LeadsPage() {
           <div>
             <p className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground"><LayoutDashboard className="size-3.5" /> {actingAsOther ? "ACCOUNT WORKSPACE" : "YOUR WORKSPACE"}</p>
             <h1 className="text-3xl font-semibold sm:text-4xl">Lead collection<span className="text-primary">.</span></h1>
-            <div className="mt-2 flex flex-wrap items-center gap-3"><p className="break-all text-sm text-muted-foreground">{actingAsOther ? targetEmail : user.email}</p>{hunterRanks[targetId] && <TopHunterTag rank={hunterRanks[targetId]} />}{bestHunter && <BestHunterTag />}</div>
+            <div className="mt-2 flex flex-wrap items-center gap-3"><p className="break-all text-sm text-muted-foreground">{actingAsOther ? targetEmail : user.email}</p>{hunterRanks[targetId] && <TopHunterTag rank={hunterRanks[targetId]} />}{bestHunter && <BestHunterTag />}<AccountHistoryButton userId={targetId} /></div>
             {!actingAsOther && <TopHunterCongrats userId={user.id} isTop={hunterRanks[user.id] === 1} />}
           </div>
           <Button variant="outline" size="sm" onClick={() => { refetchLeads(); qc.invalidateQueries({ queryKey: ["previous-version-leads"] }); }}>
