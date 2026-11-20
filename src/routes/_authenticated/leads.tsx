@@ -35,6 +35,7 @@ import { TopHunterCongrats, TopHunterTag, useTopHunters } from "@/components/top
 import { DEFAULT_LEAD_VIEW, LeadStatus } from "@/components/lead-status";
 import { signOutThisDevice } from "@/lib/account-session";
 import { boundedRequest, recoveryQueryOptions } from "@/lib/request-recovery";
+import { recoverSession } from "@/lib/session-recovery";
 import { accountEmail } from "@/lib/admin.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -200,7 +201,7 @@ function LeadsPage() {
       const trimmedLink = normalizeLink(link);
       const trimmedPhone = phone.trim().slice(0, 30) || null;
       if (!/^https?:\/\/.+/i.test(trimmedLink)) throw new Error("Ekta valid link din (https://...)");
-      const { data: sessionData } = await supabase.auth.getSession();
+      const { data: sessionData } = await recoverSession();
       const uid = sessionData.session?.user?.id;
       if (!uid) throw new Error("Session shesh hoye geche, abar login korun.");
 
@@ -218,14 +219,14 @@ function LeadsPage() {
         if (duplicatePhone) throw new Error("Ei phone number already add kora ache.");
       }
 
-      const { error } = await supabase.from("leads").insert({
+      const { error } = await boundedRequest(sig => supabase.from("leads").insert({
         user_id: targetId,
         facebook_link: trimmedLink.slice(0, 500),
         // The database trigger replaces this with the authoritative canonical value.
         canonical_link: trimmedLink.slice(0, 500),
         phone: trimmedPhone,
         serial: 0,
-      });
+      }).abortSignal(sig), 20_000);
       if (error) {
         if (error.code === "23505")
           throw new Error("Ei link onno ekta account e already add kora ache.");
@@ -245,7 +246,7 @@ function LeadsPage() {
 
   const addBulk = useMutation({
     mutationFn: async () => {
-      const { data: sessionData } = await supabase.auth.getSession();
+      const { data: sessionData } = await recoverSession();
       const uid = sessionData.session?.user?.id;
       if (!uid) throw new Error("Session shesh hoye geche, abar login korun.");
 
@@ -280,7 +281,7 @@ function LeadsPage() {
       let added = 0;
       let globalSkipped = 0;
       for (const row of rows) {
-        const { error } = await supabase.from("leads").insert(row);
+        const { error } = await boundedRequest(sig => supabase.from("leads").insert(row).abortSignal(sig), 20_000);
         if (error) {
           if (error.code === "23505") {
             globalSkipped++;
