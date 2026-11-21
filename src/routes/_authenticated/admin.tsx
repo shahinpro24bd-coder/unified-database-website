@@ -2,7 +2,8 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Trash2, Users, Clock, ListChecks, Plus, UserPlus, Archive, ArchiveRestore, RotateCcw, ExternalLink, Eye, FolderArchive } from 'lucide-react';
+import { Trash2, Users, Clock, ListChecks, Plus, UserPlus, Archive, ArchiveRestore, RotateCcw, ExternalLink, Eye, FolderArchive, Receipt } from 'lucide-react';
+import { AdminHunterLedger } from '@/components/admin-hunter-ledger';
 import { AdminAccountList } from '@/components/admin-account-list';
 import { directoryAccounts } from '@/lib/account-directory';
 import { AdminDailyOverview } from '@/components/admin-daily-overview';
@@ -35,6 +36,7 @@ function AdminPage() {
   const [showAll, setShowAll] = useState(false);
   const [showToday, setShowToday] = useState(false);
   const [showRemoved, setShowRemoved] = useState(false);
+  const [showLedger, setShowLedger] = useState(false);
   const query = useQuery({ ...recoveryQueryOptions, queryKey: ['admin-dashboard'], queryFn: ({ signal }) => boundedRequest(s => load({ signal: s }), undefined, signal) });
   const deletion = useMutation({ mutationFn: (userId: string) => remove({ data: { userId } }), onSuccess: () => { toast.success('Moved to Removed accounts. Profile and leads preserved.'); qc.invalidateQueries({ queryKey: ['admin-dashboard'] }); }, onError: (e: Error) => toast.error(e.message) });
   const data = query.data;
@@ -70,6 +72,8 @@ function AdminPage() {
         <div className="admin-stats my-8 grid grid-cols-2 gap-6 border-y py-6"><div><Users className="mb-2 size-5 text-primary" /><p className="text-sm text-muted-foreground">Total accounts</p><p className="text-3xl font-semibold">{data.accounts.filter(a => !a.removedAt).length}</p></div><div><ListChecks className="mb-2 size-5 text-primary" /><p className="text-sm text-muted-foreground">Lead submissions · all time</p><p className="text-3xl font-semibold">{data.activity.length}</p></div></div>
         <CreateAccount onDone={() => qc.invalidateQueries({ queryKey: ['admin-dashboard'] })} />
         <div className="mb-8 flex flex-wrap items-center gap-3 border-b pb-6"><Button variant={showToday ? 'secondary' : 'outline'} aria-expanded={showToday} aria-controls="today-report" onClick={() => setShowToday(v => !v)}><Clock className="size-4" /> {showToday ? "Hide today's report" : "Today's report"}</Button><Button variant={showAll ? 'secondary' : 'outline'} aria-expanded={showAll} onClick={() => setShowAll(v => !v)}><Eye /> {showAll ? 'Hide all leads' : 'Show all leads'}</Button><Button variant={showRemoved ? 'secondary' : 'outline'} aria-expanded={showRemoved} aria-controls="removed-accounts" onClick={() => setShowRemoved(v => !v)}><FolderArchive className="size-4" /> Removed accounts ({data.accounts.filter(a => a.removedAt).length})</Button>{showAll && <Button variant="ghost" onClick={() => qc.invalidateQueries({ queryKey: ['admin-all-leads'] })}><RotateCcw /> Refresh</Button>}</div>
+        <div className="mb-6"><Button variant={showLedger ? 'secondary' : 'outline'} aria-expanded={showLedger} aria-controls="hunter-ledger" onClick={() => setShowLedger(v => !v)}><Receipt className="size-4" /> {showLedger ? 'Hide order & payment' : 'Hunter order & payment'}</Button></div>
+        {showLedger && <AdminHunterLedger accounts={data.accounts} selfId={data.selfId} />}
         {showToday && <div id="today-report"><AdminDailyOverview accounts={data.accounts} onOpen={openWorkspace} /></div>}
         {showAll && <AllLeads accounts={data.accounts} />}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-4"><h2 className="text-xl font-semibold">Accounts</h2><Input aria-label="Search accounts" className="max-w-sm" placeholder="Search accounts…" value={search} onChange={e => setSearch(e.target.value)} /></div>

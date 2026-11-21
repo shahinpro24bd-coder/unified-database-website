@@ -1,5 +1,5 @@
 # Tasks
-- [ ] Add admin-only dated hunter order/payment ledger with editable records, automatic balances and filters; verify authenticated save/readback.
+- [x] Add admin-only dated hunter order/payment ledger with editable records, automatic balances and filters; verified admin save/reload/edit/delete, phone layout and 24 tests. Temporary verification record removed.
 - [x] Show automatically detected country time and day/night beside lead numbers in user and admin lists; 24 tests passed and browser-rendered phone/desktop displays verified. Full signed-in list check unavailable: requesting user has no matching account and no account was specified for testing.
 - [x] Preserve removed profiles in an admin-only folder with lead access; add admin-controlled Best Hunter tags visible in profiles and pinned first in accounts. Verified real admin removal, hidden main-list entry, retained nine leads, loaded workspace tag, phone layout and 42 tests; restored verification account states.
 - [x] Add secure per-account pause/resume, automatic device logout with requested message, preserved admin view-as access, and end-to-end tests; verified two separate signed-in devices, blocked paused login, admin readback, resumed password login, restrictive database policies and 36 tests. Offline/sleeping devices show the logout on reconnect; admin accounts are protected from pause.

@@ -14,11 +14,11 @@ export async function readHunterLedger(signal: AbortSignal) {
 export async function saveHunterLedger(input: HunterLedgerInput, editing: boolean, signal: AbortSignal) {
   const value = hunterLedgerSchema.parse(input);
   const request = editing ? supabase.from('hunter_order_ledger').update(value).eq('id', value.id) : supabase.from('hunter_order_ledger').insert(value);
-  const { data, error } = await request.select('id').single().abortSignal(signal);
+  const { data, error } = await request.select('id').abortSignal(signal).single();
   if (error) throw error;
   return data;
 }
 export async function deleteHunterLedger(id: string, signal: AbortSignal) {
-  const { error } = await supabase.from('hunter_order_ledger').delete().eq('id', id).select('id').single().abortSignal(signal);
+  const { error } = await supabase.from('hunter_order_ledger').delete().eq('id', id).select('id').abortSignal(signal).single();
   if (error) throw error;
 }
