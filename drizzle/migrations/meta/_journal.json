@@ -78,6 +78,13 @@
       "when": 1795178057053,
       "tag": "0010_fix_hunter_sync_delete",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1795278414815,
+      "tag": "0011_hunter_order_ledger",
+      "breakpoints": true
     }
   ]
 }

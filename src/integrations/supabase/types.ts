@@ -65,6 +65,42 @@ export type Database = {
         }
         Relationships: []
       }
+      hunter_order_ledger: {
+        Row: {
+          created_at: string
+          due: number | null
+          hunter_id: string
+          id: string
+          notes: string
+          order_count: number
+          order_date: string
+          paid: number
+          payable: number
+        }
+        Insert: {
+          created_at?: string
+          due?: number | null
+          hunter_id: string
+          id?: string
+          notes?: string
+          order_count?: number
+          order_date: string
+          paid?: number
+          payable?: number
+        }
+        Update: {
+          created_at?: string
+          due?: number | null
+          hunter_id?: string
+          id?: string
+          notes?: string
+          order_count?: number
+          order_date?: string
+          paid?: number
+          payable?: number
+        }
+        Relationships: []
+      }
       lead_activity: {
         Row: {
           added_at: string
